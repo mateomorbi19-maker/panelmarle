@@ -300,8 +300,26 @@ export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
             aria-hidden="true"
             className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
           />
+          {/*
+            Todo esto es para que al tocar acá NO salte el autocompletado del
+            teléfono pidiendo el correo y la huella o la cara. Pasaba porque el
+            navegador tenía guardada una credencial de este sitio y, ante un
+            campo de texto sin identificar, la ofrecía igual.
+            `name` propio + autoComplete off lo resuelven en el navegador, y
+            los `data-*` son las señales que miran 1Password, LastPass y
+            Dashlane, que ignoran el autoComplete.
+          */}
           <Input
             type="search"
+            name="buscar-chat"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="search"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar un chat…"

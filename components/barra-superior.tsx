@@ -194,14 +194,14 @@ export function BarraSuperior({
                 error si un GroupLabel queda suelto, y con eso el menú entero
                 dejaba de abrirse.
               */}
-              <DropdownMenuLabel>Tema</DropdownMenuLabel>
+              <DropdownMenuLabel>Theme</DropdownMenuLabel>
               <DropdownMenuRadioItem value="system">
                 <Monitor aria-hidden="true" />
-                El del sistema
+                System
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="dark">
                 <Moon aria-hidden="true" />
-                Oscuro
+                Dark
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>

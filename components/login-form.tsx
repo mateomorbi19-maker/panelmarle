@@ -72,7 +72,15 @@ export function LoginForm() {
                 name="usuario"
                 type="text"
                 defaultValue="Marle"
-                autoComplete="username"
+                // NO va "username": no hay contraseña que guardar, y
+                // marcarlo así hacía que el navegador guardara una credencial
+                // para este sitio. Después la ofrecía en cualquier campo de
+                // texto del panel —incluido el buscador de chats— pidiendo la
+                // huella o la cara.
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
+                data-form-type="other"
                 autoFocus
                 required
                 aria-invalid={error ? true : undefined}
