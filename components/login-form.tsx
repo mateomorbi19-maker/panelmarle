@@ -31,6 +31,12 @@ export function LoginForm() {
 
     const datos = new FormData(evento.currentTarget);
     try {
+      // Se cierra el teclado antes de navegar: si no, en un teléfono viaja
+      // abierto hasta la pantalla siguiente.
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
       const respuesta = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,7 +87,11 @@ export function LoginForm() {
                 data-1p-ignore
                 data-lpignore="true"
                 data-form-type="other"
-                autoFocus
+                // SIN autoFocus a propósito. En un teléfono abría el teclado
+                // solo al entrar, y como el paso al panel es una navegación
+                // interna (la página no recarga), el teclado se quedaba
+                // abierto: aterrizabas en los chats con el teclado arriba y
+                // parecía que se había seleccionado el buscador.
                 required
                 aria-invalid={error ? true : undefined}
               />
