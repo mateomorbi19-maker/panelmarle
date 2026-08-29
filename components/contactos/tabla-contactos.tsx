@@ -122,8 +122,22 @@ export function TablaContactos({ filas }: { filas: ContactoFila[] }) {
             aria-hidden="true"
             className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
           />
+          {/*
+            Mismo blindaje que se le puso al buscador de chats antes de
+            sacarlo: sin esto, en el teléfono el sistema ofrece el correo
+            guardado y pide la huella al tocar el campo.
+          */}
           <Input
             type="search"
+            name="buscar-contacto"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="search"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o teléfono…"

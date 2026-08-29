@@ -8,8 +8,6 @@ import {
   BotOff,
   MessagesSquare,
   Reply,
-  Search,
-  SearchX,
   X,
 } from "lucide-react";
 import { AvatarContacto } from "@/components/conversaciones/avatar-contacto";
@@ -21,7 +19,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
 import type { Canal, RolMensaje } from "@/lib/data/types";
 import type { EstadoVentana } from "@/lib/ventana";
 import { cn } from "@/lib/utils";
@@ -99,23 +96,6 @@ const PREFIJO: Record<string, string> = {
 /** El nombre del filtro, para poder decirlo en el estado vacío. */
 function etiquetaFiltro(valor: Filtro): string {
   return FILTROS.find((f) => f.valor === valor)?.etiqueta ?? "";
-}
-
-/**
- * Deja el texto comparable.
- *
- * NFKD hace dos cosas que hacen falta acá: separa los acentos (para poder
- * borrarlos, así "Anggie" encuentra a "Ánggie") y convierte los caracteres
- * "estilizados" que Instagram deja poner en los nombres —𝙼𝚊𝚗𝚒𝚌𝚞𝚛𝚊, 𝒥𝓊𝓁𝒾𝒶𝓃𝒶—
- * en letras normales. Sin eso, buscar "juliana" no encontraba a "𝒥𝓊𝓁𝒾𝒶𝓃𝒶",
- * que es justo el caso donde el buscador hace falta.
- */
-function normalizar(valor: string): string {
-  return valor
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[\s+()@.\-]/g, "")
-    .toLowerCase();
 }
 
 function Fila({
@@ -256,19 +236,7 @@ function Fila({
 
 export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [busqueda, setBusqueda] = useState("");
   const [respondiendo, setRespondiendo] = useState<string | null>(null);
-
-  const consulta = busqueda.trim();
-
-  function coincide(fila: ConversacionFila): boolean {
-    if (!consulta) return true;
-    // Se busca por lo que se ve Y por lo que no: el nombre real de Instagram
-    // no está a la vista, pero Marle puede acordarse de él.
-    return [fila.identidad, fila.nombre, fila.telefono, fila.igUsername]
-      .filter((campo): campo is string => Boolean(campo))
-      .some((campo) => normalizar(campo).includes(normalizar(consulta)));
-  }
 
   function pasaFiltro(fila: ConversacionFila, cual: Filtro): boolean {
     if (cual === "instagram") return fila.canal === "instagram";
@@ -279,55 +247,27 @@ export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
     return true;
   }
 
-  const buscados = filas.filter(coincide);
-  const visibles = buscados.filter((fila) => pasaFiltro(fila, filtro));
+  const visibles = filas.filter((fila) => pasaFiltro(fila, filtro));
 
-  // Los números de los chips cuentan SOBRE LO BUSCADO. Si contaran sobre todo,
-  // un chip diría "3" y al tocarlo no aparecería nada.
   const cuentas = Object.fromEntries(
     FILTROS.map(({ valor }) => [
       valor,
-      buscados.filter((f) => pasaFiltro(f, valor)).length,
+      filas.filter((f) => pasaFiltro(f, valor)).length,
     ])
   ) as Record<Filtro, number>;
 
   return (
     <div className="flex flex-col">
-      {/* Buscar y filtrar. Queda fijo arriba mientras se baja por los chats. */}
-      <div className="bg-background sticky top-14 z-20 flex flex-col gap-2 border-b px-4 pt-3 pb-2">
-        <div className="relative">
-          <Search
-            aria-hidden="true"
-            className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-          />
-          {/*
-            Todo esto es para que al tocar acá NO salte el autocompletado del
-            teléfono pidiendo el correo y la huella o la cara. Pasaba porque el
-            navegador tenía guardada una credencial de este sitio y, ante un
-            campo de texto sin identificar, la ofrecía igual.
-            `name` propio + autoComplete off lo resuelven en el navegador, y
-            los `data-*` son las señales que miran 1Password, LastPass y
-            Dashlane, que ignoran el autoComplete.
-          */}
-          <Input
-            type="search"
-            name="buscar-chat"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            enterKeyHint="search"
-            data-1p-ignore
-            data-lpignore="true"
-            data-form-type="other"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar un chat…"
-            aria-label="Buscar un chat por nombre, usuario o teléfono"
-            className="h-9 pl-8"
-          />
-        </div>
+      {/*
+        Los filtros, fijos arriba mientras se baja por los chats.
 
+        Acá había también un buscador y se sacó: en el teléfono, tocarlo hacía
+        que el sistema ofreciera el correo guardado y pidiera la huella, y no
+        se pudo dejar quieto. Sin él la pantalla queda además más limpia, que
+        es lo que se buscaba. Si vuelve, tiene que volver de una forma que no
+        despierte al gestor de contraseñas.
+      */}
+      <div className="bg-background sticky top-14 z-20 border-b px-4 py-2">
         {/* Se corre con el dedo, como las etiquetas de WhatsApp. */}
         <div className="-mx-4 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max gap-2">
@@ -361,28 +301,18 @@ export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
         <Empty className="m-4 border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              {consulta ? (
-                <SearchX aria-hidden="true" />
-              ) : (
-                <MessagesSquare aria-hidden="true" />
-              )}
+              <MessagesSquare aria-hidden="true" />
             </EmptyMedia>
             <EmptyTitle>
-              {consulta || filtro !== "todos"
-                ? "Nada por acá"
-                : "Todavía no hay chats"}
+              {filtro !== "todos" ? "Nada por acá" : "Todavía no hay chats"}
             </EmptyTitle>
             <EmptyDescription>
-              {/* Decir "no hay chats" con 19 chats en la lista es mentir: lo
-                  que pasa es que el filtro o la búsqueda no dejan pasar
-                  ninguno, y hay que decir CUÁL. */}
-              {consulta && filtro !== "todos"
-                ? `Ningún chat en “${etiquetaFiltro(filtro)}” coincide con “${consulta}”.`
-                : consulta
-                  ? `Ningún chat coincide con “${consulta}”.`
-                  : filtro !== "todos"
-                    ? `No hay chats en “${etiquetaFiltro(filtro)}”.`
-                    : "Cuando entre un mensaje por WhatsApp o Instagram, aparece acá."}
+              {/* Decir "no hay chats" con la lista llena sería mentir: lo que
+                  pasa es que el filtro no deja pasar ninguno, y hay que decir
+                  CUÁL. */}
+              {filtro !== "todos"
+                ? `No hay chats en “${etiquetaFiltro(filtro)}”.`
+                : "Cuando entre un mensaje por WhatsApp o Instagram, aparece acá."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

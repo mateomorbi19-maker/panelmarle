@@ -9,6 +9,7 @@ import {
   Home,
   Monitor,
   Moon,
+  Sun,
   Plus,
   Settings,
 } from "lucide-react";
@@ -198,6 +199,10 @@ export function BarraSuperior({
               <DropdownMenuRadioItem value="system">
                 <Monitor aria-hidden="true" />
                 System
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="light">
+                <Sun aria-hidden="true" />
+                Light
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="dark">
                 <Moon aria-hidden="true" />
