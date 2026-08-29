@@ -8,16 +8,21 @@ import { cn } from "@/lib/utils";
 /**
  * Interruptor de encendido/apagado.
  *
- * Se agregó para el botón del agente adentro del chat: un interruptor dice
- * "esto está prendido o apagado" de un vistazo, cosa que un botón con texto no
- * hace. Sigue el mismo estilo que el resto de los componentes del panel.
+ * Verde prendido, gris apagado. La bolita se desliza con una transición, así
+ * que NUNCA hay que desmontarlo para mostrar que está cambiando: si el
+ * interruptor desaparece y vuelve, uno no sabe si lo prendió o lo apagó. Para
+ * el "estoy guardando" se usa `data-pendiente`, que solo lo atenúa.
  */
 function Switch({ className, ...props }: SwitchPrimitive.Root.Props) {
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer border-input bg-input data-checked:bg-primary data-checked:border-primary focus-visible:border-ring focus-visible:ring-ring/50 inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50",
+        // Verde cuando está prendido: es el color con el que todo el mundo
+        // lee "esto está andando", y de un vistazo no hay que pensarlo.
+        // Apagado queda gris, como cualquier interruptor.
+        "peer border-input bg-input data-checked:bg-exito data-checked:border-exito focus-visible:border-ring focus-visible:ring-ring/50 inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50",
+        "data-[pendiente=true]:opacity-70",
         className
       )}
       {...props}

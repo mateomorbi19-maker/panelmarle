@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useOptimistic } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   BellRing,
   Home,
-  Loader2,
   Monitor,
   Moon,
   Plus,
@@ -46,17 +45,20 @@ export function BarraSuperior({
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const [cambiando, setCambiando] = useState(false);
+  // La bolita se mueve APENAS se toca, sin esperar al servidor. Cuando llega
+  // el dato real, React descarta el valor optimista solo. Si el servidor dice
+  // que no, vuelve a su lugar: nunca queda mostrando algo que no es.
+  const [encendido, setEncendido] = useOptimistic(agenteEncendido);
+  const pendiente = encendido !== agenteEncendido;
 
   if (/^\/conversaciones\/[^/]+$/.test(pathname)) return null;
 
-  async function cambiarAgente(encendido: boolean) {
-    setCambiando(true);
+  async function cambiarAgente(nuevo: boolean) {
     try {
       const res = await fetch("/api/agente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ encendido }),
+        body: JSON.stringify({ encendido: nuevo }),
       });
       const datos = await res.json();
 
@@ -69,16 +71,24 @@ export function BarraSuperior({
       }
 
       toast.success(
-        encendido
+        nuevo
           ? "El agente vuelve a contestar."
           : "El agente quedó apagado en todos los chats."
       );
       router.refresh();
     } catch {
       toast.error("No se pudo hablar con el servidor. Fijate la conexión.");
-    } finally {
-      setCambiando(false);
+      router.refresh();
     }
+  }
+
+  function alTocar(nuevo: boolean) {
+    // Dentro de una transición: React mantiene el valor optimista hasta que
+    // llega el dato de verdad, y recién ahí lo suelta.
+    startTransition(async () => {
+      setEncendido(nuevo);
+      await cambiarAgente(nuevo);
+    });
   }
 
   return (
@@ -133,30 +143,29 @@ export function BarraSuperior({
         <label className="flex items-center gap-1.5">
           <span
             className={cn(
-              "text-xs font-medium",
-              agenteEncendido ? "text-foreground" : "text-muted-foreground"
+              "text-xs font-medium transition-colors",
+              encendido ? "text-foreground" : "text-muted-foreground"
             )}
           >
             Agente
           </span>
-          {cambiando ? (
-            <Loader2
-              aria-hidden="true"
-              className="text-muted-foreground size-5 animate-spin"
-            />
-          ) : (
-            <Switch
-              checked={agenteEncendido}
-              onCheckedChange={(encendido) => void cambiarAgente(encendido)}
-              aria-label={
-                agenteEncendido
-                  ? "Apagar el agente en todos los chats"
-                  : "Prender el agente"
-              }
-            >
-              <SwitchThumb />
-            </Switch>
-          )}
+          {/*
+            El interruptor NUNCA se desmonta mientras guarda: si desapareciera
+            para dar lugar a un spinner, al volver no se sabría si quedó
+            prendido o apagado. Mientras espera solo se atenúa.
+          */}
+          <Switch
+            checked={encendido}
+            data-pendiente={pendiente}
+            onCheckedChange={alTocar}
+            aria-label={
+              encendido
+                ? "Apagar el agente en todos los chats"
+                : "Prender el agente"
+            }
+          >
+            <SwitchThumb />
+          </Switch>
         </label>
 
         <DropdownMenu>
@@ -173,7 +182,6 @@ export function BarraSuperior({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel>Tema</DropdownMenuLabel>
             <DropdownMenuRadioGroup
               // No hace falta esperar a "montado": el menú se dibuja recién
               // al abrirlo, o sea siempre después de hidratar, y para
@@ -181,6 +189,12 @@ export function BarraSuperior({
               value={theme ?? "system"}
               onValueChange={(valor) => setTheme(valor)}
             >
+              {/*
+                El título va ADENTRO del grupo a propósito: base-ui tira un
+                error si un GroupLabel queda suelto, y con eso el menú entero
+                dejaba de abrirse.
+              */}
+              <DropdownMenuLabel>Tema</DropdownMenuLabel>
               <DropdownMenuRadioItem value="system">
                 <Monitor aria-hidden="true" />
                 El del sistema

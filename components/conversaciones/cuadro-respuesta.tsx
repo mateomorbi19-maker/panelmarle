@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useId,
+  useOptimistic,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ExternalLink,
@@ -109,6 +116,11 @@ export function CuadroRespuesta({
   const campo = useRef<HTMLTextAreaElement>(null);
   const grabadora = useRef<MediaRecorder | null>(null);
   const trozos = useRef<Blob[]>([]);
+
+  // El interruptor del chat: la bolita se mueve apenas se toca y React
+  // descarta el valor optimista cuando llega el de verdad.
+  const agenteReal = agenteGlobalEncendido && !agenteApagado;
+  const [agenteVisible, setAgenteVisible] = useOptimistic(agenteReal);
 
   const limite = LIMITE[canal] ?? 4096;
   const restantes = limite - texto.length;
@@ -453,28 +465,32 @@ export function CuadroRespuesta({
                     <span className="text-muted-foreground block text-xs">
                       {!agenteGlobalEncendido
                         ? "Apagado en todo el panel"
-                        : agenteApagado
-                          ? "Apagado en este chat"
-                          : "Contesta este chat"}
+                        : agenteVisible
+                          ? "Contesta este chat"
+                          : "Apagado en este chat"}
                     </span>
                   </label>
-                  {cambiandoAgente ? (
-                    <Loader2
-                      aria-hidden="true"
-                      className="text-muted-foreground size-4 animate-spin"
-                    />
-                  ) : (
-                    <Switch
-                      id={idAgente}
-                      checked={agenteGlobalEncendido && !agenteApagado}
-                      disabled={!agenteGlobalEncendido}
-                      onCheckedChange={(encendido) =>
-                        onCambiarAgente(encendido)
-                      }
-                    >
-                      <SwitchThumb />
-                    </Switch>
-                  )}
+                  {/*
+                    Igual que el general: NUNCA se desmonta mientras guarda.
+                    Un interruptor que desaparece y vuelve deja la duda de si
+                    uno lo prendió o lo apagó.
+                  */}
+                  <Switch
+                    id={idAgente}
+                    checked={agenteVisible}
+                    disabled={!agenteGlobalEncendido}
+                    data-pendiente={
+                      cambiandoAgente || agenteVisible !== agenteReal
+                    }
+                    onCheckedChange={(nuevo) => {
+                      startTransition(() => {
+                        setAgenteVisible(nuevo);
+                        onCambiarAgente(nuevo);
+                      });
+                    }}
+                  >
+                    <SwitchThumb />
+                  </Switch>
                 </div>
               </>
             ) : null}
