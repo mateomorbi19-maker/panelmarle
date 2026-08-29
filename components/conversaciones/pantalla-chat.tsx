@@ -45,12 +45,15 @@ export function PantallaChat({
   mensajes,
   ventana,
   enlaceAlternativo,
+  agenteGlobalEncendido,
   children,
 }: {
   conversacion: Conversacion;
   mensajes: Mensaje[];
   ventana: EstadoVentana;
   enlaceAlternativo?: { href: string; etiqueta: string };
+  /** El interruptor general. Apagado manda sobre el de este chat. */
+  agenteGlobalEncendido: boolean;
   /** El aviso, la campaña y la transcripción, ya dibujados en el servidor. */
   children: React.ReactNode;
 }) {
@@ -185,10 +188,12 @@ export function PantallaChat({
           normal y no hace falta decirlo, pero apagado no vence solo y es lo
           que no se puede olvidar.
         */}
-        {apagado ? (
+        {!agenteGlobalEncendido || apagado ? (
           <p className="text-muted-foreground flex items-center gap-1.5 px-1 text-[11px] leading-tight">
             <BotOff aria-hidden="true" className="size-3.5 shrink-0" />
-            Agente apagado. Lo que se diga acá queda guardado igual.
+            {!agenteGlobalEncendido
+              ? "Agente apagado en todo el panel. Se prende desde la pantalla de chats."
+              : "Agente apagado. Lo que se diga acá queda guardado igual."}
           </p>
         ) : null}
 
@@ -202,6 +207,7 @@ export function PantallaChat({
           onEnviado={alEnviar}
           onCambiarAgente={(encendido) => void cambiarAgente(encendido)}
           cambiandoAgente={cambiandoAgente}
+          agenteGlobalEncendido={agenteGlobalEncendido}
         />
       </div>
     </>

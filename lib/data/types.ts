@@ -114,6 +114,19 @@ export type EstadoEntrega =
 
 export type EstadoConversacion = "bot" | "derivada" | "atendida" | "cerrada";
 
+/**
+ * El interruptor general del agente.
+ *
+ * Apagado lo calla en TODOS los chats. No se confunde con el apagado de una
+ * conversación suelta (`Conversacion.agenteApagado`): este manda sobre todo,
+ * y mientras esté apagado el interruptor de un chat no cambia nada.
+ */
+export interface AgenteGlobal {
+  encendido: boolean;
+  /** ISO 8601 del último cambio. */
+  cambiadoAt?: string;
+}
+
 /** Un chat completo con una persona. ← tabla `conversaciones` de Supabase. */
 export interface Conversacion {
   id: string;

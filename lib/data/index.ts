@@ -34,7 +34,11 @@ import {
 } from "./real/conversaciones";
 import { getIntegrantesReales } from "./real/integrantes";
 import { apagarAgenteReal, prenderAgenteReal } from "./real/acciones";
-import type { Conversacion } from "./types";
+import {
+  cambiarAgenteGlobalReal,
+  getAgenteGlobalReal,
+} from "./real/ajustes";
+import type { AgenteGlobal, Conversacion } from "./types";
 
 /**
  * Con credenciales de Supabase lee los datos REALES; sin ellas usa los mocks,
@@ -77,6 +81,14 @@ export const db = {
   prenderAgente: hayCredencialesSupabase
     ? prenderAgenteReal
     : (soloDemo as (c: Conversacion) => Promise<void>),
+  agenteGlobal: hayCredencialesSupabase
+    ? getAgenteGlobalReal
+    : // En la demo el interruptor se ve prendido y no hace nada: no hay agente
+      // al que apagar.
+      (async () => ({ encendido: true })) as () => Promise<AgenteGlobal>,
+  cambiarAgenteGlobal: hayCredencialesSupabase
+    ? cambiarAgenteGlobalReal
+    : (soloDemo as (encendido: boolean) => Promise<AgenteGlobal>),
 };
 
 export type * from "./types";

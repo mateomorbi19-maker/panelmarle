@@ -23,12 +23,15 @@ export default async function DashboardLayout({
   // Guard de sesión: sin cookie válida no se ve ninguna sección del panel.
   if (!(await estaAutenticado())) redirect("/login");
 
-  const alertas = await db.alertas();
+  const [alertas, agente] = await Promise.all([db.alertas(), db.agenteGlobal()]);
   const alertasPendientes = alertas.filter((a) => !a.atendida).length;
 
   return (
     <div className="bg-background flex min-h-svh w-full flex-col">
-      <BarraSuperior alertasPendientes={alertasPendientes} />
+      <BarraSuperior
+        alertasPendientes={alertasPendientes}
+        agenteEncendido={agente.encendido}
+      />
       <main className="flex flex-1 flex-col">{children}</main>
     </div>
   );

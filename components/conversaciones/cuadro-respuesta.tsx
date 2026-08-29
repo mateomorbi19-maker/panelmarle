@@ -71,6 +71,7 @@ export function CuadroRespuesta({
   onEnviado,
   onCambiarAgente,
   cambiandoAgente = false,
+  agenteGlobalEncendido = true,
   autoFoco = false,
 }: {
   conversacionId: string;
@@ -89,6 +90,12 @@ export function CuadroRespuesta({
   /** Si viene, el menú muestra el interruptor del agente. */
   onCambiarAgente?: (encendido: boolean) => void;
   cambiandoAgente?: boolean;
+  /**
+   * El interruptor GENERAL. Apagado manda sobre todo: el de este chat no
+   * cambia nada, así que se muestra apagado y no se puede tocar. Dejar que se
+   * prenda sería mentirle a Marle sobre si alguien le está contestando.
+   */
+  agenteGlobalEncendido?: boolean;
   autoFoco?: boolean;
 }) {
   const router = useRouter();
@@ -444,7 +451,11 @@ export function CuadroRespuesta({
                   <label htmlFor={idAgente} className="flex-1 cursor-pointer text-sm">
                     Agente
                     <span className="text-muted-foreground block text-xs">
-                      {agenteApagado ? "Apagado" : "Contesta este chat"}
+                      {!agenteGlobalEncendido
+                        ? "Apagado en todo el panel"
+                        : agenteApagado
+                          ? "Apagado en este chat"
+                          : "Contesta este chat"}
                     </span>
                   </label>
                   {cambiandoAgente ? (
@@ -455,7 +466,8 @@ export function CuadroRespuesta({
                   ) : (
                     <Switch
                       id={idAgente}
-                      checked={!agenteApagado}
+                      checked={agenteGlobalEncendido && !agenteApagado}
+                      disabled={!agenteGlobalEncendido}
                       onCheckedChange={(encendido) =>
                         onCambiarAgente(encendido)
                       }

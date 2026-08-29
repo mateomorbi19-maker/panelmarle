@@ -36,7 +36,10 @@ export default async function ConversacionPage({
   const conversacion = await db.conversacion(id);
   if (!conversacion) notFound();
 
-  const mensajes = await db.mensajes(conversacion.id);
+  const [mensajes, agente] = await Promise.all([
+    db.mensajes(conversacion.id),
+    db.agenteGlobal(),
+  ]);
   const enlaces = enlacesConversacion(conversacion);
 
   // La ventana se calcula en el SERVIDOR y viaja ya resuelta: si la calculara
@@ -124,6 +127,7 @@ export default async function ConversacionPage({
         mensajes={mensajes}
         ventana={ventana}
         enlaceAlternativo={enlaceAlternativo}
+        agenteGlobalEncendido={agente.encendido}
       >
         {conversacion.origenCampania ? (
           <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs">

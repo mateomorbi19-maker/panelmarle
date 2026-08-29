@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { ProveedorDeTema } from "@/components/tema";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -53,10 +54,15 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      // next-themes pone la clase del tema antes de que React hidrate: sin
+      // esto el navegador avisa de una diferencia que es esperada.
+      suppressHydrationWarning
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+        <ProveedorDeTema>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ProveedorDeTema>
         {/*
           Corrido para abajo de la barra fija (56 px): arriba del todo tapaba
           el nombre del chat y la flecha de volver, justo mientras aparecía el
