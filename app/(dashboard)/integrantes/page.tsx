@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { db, type EstadoMembresia } from "@/lib/data";
 import { formatearFecha, tiempoDesde } from "@/lib/format";
+import { Seccion } from "@/components/seccion";
 
 export const metadata: Metadata = {
   title: "Integrantes",
@@ -61,10 +62,9 @@ export default async function IntegrantesPage() {
   ).length;
 
   return (
-    <>
+    <Seccion>
       <SectionHeader
         titulo="Integrantes"
-        descripcion="Personas que forman parte de la Academia"
       >
         <Badge variant="secondary">{activas} activas</Badge>
       </SectionHeader>
@@ -118,8 +118,12 @@ export default async function IntegrantesPage() {
                           <Star aria-hidden="true" />
                           Anual
                         </Badge>
-                      ) : (
+                      ) : integrante.plan === "mensual" ? (
                         <Badge variant="outline">Mensual</Badge>
+                      ) : (
+                        // Skool no manda el plan: un guion honesto antes que
+                        // afirmar "Mensual" sobre lo que la persona paga.
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -141,6 +145,6 @@ export default async function IntegrantesPage() {
           nuevo.
         </p>
       </div>
-    </>
+    </Seccion>
   );
 }

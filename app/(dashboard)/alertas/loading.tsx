@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Seccion } from "@/components/seccion";
 
 /** Skeleton de la página de alertas: header + subtítulo + tarjetas. */
 export default function AlertasLoading() {
   return (
-    <>
+    <Seccion>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-7 w-36" />
@@ -18,6 +19,6 @@ export default function AlertasLoading() {
           <Skeleton key={i} className="h-24 w-full rounded-xl" />
         ))}
       </div>
-    </>
+    </Seccion>
   );
 }

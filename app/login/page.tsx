@@ -20,7 +20,7 @@ export default async function LoginPage() {
         </div>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Panel Marle Nails
+            Marle Nails
           </h1>
           <p className="text-muted-foreground text-sm text-balance">
             Monitoreo de contactos, integrantes, checkouts y alertas

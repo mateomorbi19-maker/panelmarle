@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { BellOff, BellRing, Check, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
-/** Alerta ya serializada en el server: `fecha` viene formateada con fechaRelativa. */
+/**
+ * Alerta ya serializada en el server: la fecha viene formateada con
+ * fechaRelativa y los enlaces vienen armados (`href` apunta a Chatwoot o a
+ * ManyChat según el canal; `conversacionPanelId` abre el chat completo acá).
+ */
 export interface AlertaItem {
   id: string;
   nombre: string;
@@ -22,15 +26,9 @@ export interface AlertaItem {
   motivo: string;
   fecha: string;
   conversacionId?: string;
+  conversacionPanelId?: string;
+  href?: string;
 }
-
-// TODO(conexión real): cuando el panel se conecte a Chatwoot, el botón va a abrir:
-// function urlConversacionChatwoot(conversacionId: string): string {
-//   const base = process.env.NEXT_PUBLIC_CHATWOOT_BASE_URL;
-//   const cuenta = process.env.NEXT_PUBLIC_CHATWOOT_ACCOUNT_ID;
-//   return base + "/app/accounts/" + cuenta + "/conversations/" + conversacionId;
-// }
-// y el onClick será: window.open(urlConversacionChatwoot(alerta.conversacionId), "_blank")
 
 function TarjetaAlerta({
   alerta,
@@ -68,15 +66,30 @@ function TarjetaAlerta({
 
         <div className="flex flex-col items-end gap-2">
           <span className="text-muted-foreground text-xs">{alerta.fecha}</span>
-          {!atendida ? (
+          {!atendida && alerta.href ? (
             <Button
               variant="default"
-              onClick={() =>
-                toast("Próximamente: va a abrir la conversación en Chatwoot")
+              render={
+                <a
+                  href={alerta.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                />
               }
             >
               Atender
               <ExternalLink data-icon="inline-end" aria-hidden="true" />
+            </Button>
+          ) : null}
+          {alerta.conversacionPanelId ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              render={
+                <Link href={`/conversaciones/${alerta.conversacionPanelId}`} />
+              }
+            >
+              Ver el chat
             </Button>
           ) : null}
         </div>

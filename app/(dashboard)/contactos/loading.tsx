@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Seccion } from "@/components/seccion";
 
 /** Skeleton de Contactos: encabezado + barra de búsqueda + tabla. */
 export default function ContactosLoading() {
   return (
-    <>
+    <Seccion>
       {/* Encabezado de la sección */}
       <div className="flex flex-col gap-2">
         <Skeleton className="h-7 w-40" />
@@ -25,6 +26,6 @@ export default function ContactosLoading() {
           ))}
         </div>
       </div>
-    </>
+    </Seccion>
   );
 }

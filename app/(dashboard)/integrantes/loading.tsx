@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Seccion } from "@/components/seccion";
 
 /** Skeleton de la vista de integrantes: encabezado + tabla. */
 export default function LoadingIntegrantes() {
   return (
-    <>
+    <Seccion>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-8 w-44" />
@@ -18,6 +19,6 @@ export default function LoadingIntegrantes() {
           <Skeleton key={i} className="h-11 w-full" />
         ))}
       </div>
-    </>
+    </Seccion>
   );
 }

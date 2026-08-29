@@ -6,7 +6,7 @@ import type { Canal } from "@/lib/data/types";
  * Ícono de Instagram inline (lucide-react ya no incluye íconos de marcas).
  * Mismo trazo/estilo que los íconos de lucide para que conviva con el resto.
  */
-function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
+export function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +31,7 @@ function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
  * definidos en globals.css (la identidad nunca es solo color: siempre hay
  * ícono y texto).
  */
-const CONFIG: Record<
+export const CANAL: Record<
   Canal,
   {
     etiqueta: string;
@@ -52,7 +52,7 @@ const CONFIG: Record<
 };
 
 export function CanalBadge({ canal }: { canal: Canal }) {
-  const { etiqueta, Icono, className } = CONFIG[canal];
+  const { etiqueta, Icono, className } = CANAL[canal];
   return (
     <Badge variant="outline" className={className}>
       <Icono aria-hidden="true" />

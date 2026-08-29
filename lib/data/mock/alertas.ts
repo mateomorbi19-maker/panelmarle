@@ -3,9 +3,20 @@ import { haceDias, haceHoras } from "./util";
 
 /**
  * Alertas mock: 6 leads que necesitan atención humana (4 pendientes, 2 ya
- * atendidas). `conversacionId` es el id de la conversación en Chatwoot que va
- * a usar el botón "Atender" cuando se conecte de verdad.
+ * atendidas).
+ *
+ * Las primeras cinco apuntan a las conversaciones mock (mismos uuids que
+ * `mock/conversaciones.ts`) para que en la demo el botón de abrir el chat
+ * exista de verdad. Sin `conversacionPanelId` la sección quedaba sin ningún
+ * botón y no había forma de llegar a la conversación.
  */
+const CHATS_MOCK = [
+  "aa000000-0000-4000-8000-000000000001",
+  "aa000000-0000-4000-8000-000000000002",
+  "aa000000-0000-4000-8000-000000000003",
+  "aa000000-0000-4000-8000-000000000004",
+  "aa000000-0000-4000-8000-000000000005",
+];
 // Se reconstruye en cada llamada para que las fechas relativas queden frescas
 // aunque el servidor lleve días corriendo.
 function construirAlertas(): Alerta[] {
@@ -20,5 +31,9 @@ function construirAlertas(): Alerta[] {
 }
 
 export async function getAlertas(): Promise<Alerta[]> {
-  return construirAlertas();
+  return construirAlertas().map((alerta, i) => ({
+    ...alerta,
+    canal: i % 3 === 2 ? ("instagram" as const) : ("whatsapp" as const),
+    conversacionPanelId: CHATS_MOCK[i],
+  }));
 }

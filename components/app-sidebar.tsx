@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Home,
   LogOut,
+  MessagesSquare,
   ShoppingCart,
   Sparkles,
   Users,
@@ -28,12 +29,20 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+/**
+ * Los CHATS son el inicio; todo lo demás es una herramienta.
+ *
+ * Por eso "Chats" va primero y apunta a "/": Marle abre el panel para ver
+ * quién le escribió, no para mirar un tablero. El resumen quedó como una
+ * sección más, no como la puerta de entrada.
+ */
 const SECCIONES = [
-  { titulo: "Inicio", href: "/", icono: Home },
+  { titulo: "Chats", href: "/", icono: MessagesSquare },
+  { titulo: "Alertas", href: "/alertas", icono: BellRing },
+  { titulo: "Resumen", href: "/resumen", icono: Home },
   { titulo: "Contactos", href: "/contactos", icono: Users },
   { titulo: "Integrantes", href: "/integrantes", icono: GraduationCap },
   { titulo: "Checkouts", href: "/checkouts", icono: ShoppingCart },
-  { titulo: "Alertas", href: "/alertas", icono: BellRing },
 ] as const;
 
 export function AppSidebar({
@@ -63,15 +72,15 @@ export function AppSidebar({
             <SidebarMenuButton
               size="lg"
               render={<Link href="/" />}
-              tooltip="Panel Marle Nails"
+              tooltip="Marle Nails"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Sparkles className="size-4" aria-hidden="true" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
-                <span className="font-semibold">Panel Marle Nails</span>
+                <span className="font-semibold">Marle Nails</span>
                 <span className="text-muted-foreground text-xs">
-                  Monitoreo del agente
+                  Chats y agente
                 </span>
               </div>
             </SidebarMenuButton>

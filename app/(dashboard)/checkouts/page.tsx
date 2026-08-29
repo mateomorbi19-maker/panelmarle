@@ -13,6 +13,7 @@ import {
 import { db } from "@/lib/data";
 import type { MotivoCheckout } from "@/lib/data/types";
 import { fechaRelativa, formatearUSD } from "@/lib/format";
+import { Seccion } from "@/components/seccion";
 
 export const metadata = { title: "Checkouts abandonados" };
 
@@ -52,10 +53,9 @@ export default async function CheckoutsPage() {
   const total = ordenados.reduce((suma, c) => suma + (c.monto ?? 0), 0);
 
   return (
-    <>
+    <Seccion>
       <SectionHeader
         titulo="Checkouts abandonados"
-        descripcion="Personas que no completaron el pago de la Academia"
       >
         <Badge variant="secondary">{formatearUSD(total)} sin cobrar</Badge>
       </SectionHeader>
@@ -116,6 +116,6 @@ export default async function CheckoutsPage() {
           con cada pago que falle o quede abandonado.
         </p>
       </div>
-    </>
+    </Seccion>
   );
 }

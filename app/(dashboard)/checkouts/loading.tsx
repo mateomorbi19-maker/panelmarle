@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Seccion } from "@/components/seccion";
 
 /** Skeleton de la página de checkouts: encabezado + tabla. */
 export default function CheckoutsLoading() {
   return (
-    <>
+    <Seccion>
       {/* Encabezado: título + descripción + badge del total */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
@@ -20,6 +21,6 @@ export default function CheckoutsLoading() {
           <Skeleton key={i} className="h-8 w-full" />
         ))}
       </div>
-    </>
+    </Seccion>
   );
 }

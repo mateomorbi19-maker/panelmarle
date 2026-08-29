@@ -6,6 +6,7 @@ import {
 import { SectionHeader } from "@/components/section-header";
 import { db } from "@/lib/data";
 import { formatearFecha } from "@/lib/format";
+import { Seccion } from "@/components/seccion";
 
 export const metadata: Metadata = {
   title: "Contactos",
@@ -36,12 +37,11 @@ export default async function ContactosPage() {
     }));
 
   return (
-    <>
+    <Seccion>
       <SectionHeader
         titulo="Contactos"
-        descripcion="Todas las personas que pasaron por el chat del agente"
       />
       <TablaContactos filas={filas} />
-    </>
+    </Seccion>
   );
 }
