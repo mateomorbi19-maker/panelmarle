@@ -26,6 +26,7 @@ function serializar(alerta: Alerta) {
     conversacionId: alerta.conversacionId,
     conversacionPanelId: alerta.conversacionPanelId,
     href: alerta.href,
+    canal: alerta.canal,
   };
 }
 

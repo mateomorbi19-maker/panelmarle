@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import { ProveedorDeTema } from "@/components/tema";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,16 @@ const inter = Inter({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+/**
+ * La serif editorial de la marca (la de los mockups de design/): monograma,
+ * títulos de página y cifras grandes. En todo lo demás sigue la sans — una
+ * serif en los mensajes o en los botones se leería mal y lenta.
+ */
+const playfair = Playfair_Display({
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
@@ -41,8 +51,8 @@ export const viewport: Viewport = {
   // lo va a usar.
   interactiveWidget: "resizes-content",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fbf7f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1215" },
   ],
 };
 
@@ -57,7 +67,7 @@ export default function RootLayout({
       // next-themes pone la clase del tema antes de que React hidrate: sin
       // esto el navegador avisa de una diferencia que es esperada.
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ProveedorDeTema>

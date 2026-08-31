@@ -15,7 +15,12 @@ export function Seccion({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-6 p-4 md:p-6", className)}>
+    <div
+      className={cn(
+        "mx-auto flex w-full max-w-5xl flex-col gap-5 p-4 md:p-6",
+        className
+      )}
+    >
       {children}
     </div>
   );

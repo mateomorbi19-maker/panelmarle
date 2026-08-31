@@ -6,12 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   BellRing,
+  GraduationCap,
   Home,
   Monitor,
   Moon,
+  ShoppingCart,
   Sun,
   Plus,
   Settings,
+  Users,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,16 +25,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Marca } from "@/components/marca";
 import { Switch, SwitchThumb } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 /**
  * La barra de arriba del panel.
  *
- * A la izquierda el "+" con las herramientas —Resumen, Alertas y
- * Correcciones—; a la derecha el interruptor GENERAL del agente y los ajustes.
+ * A la izquierda la marca (que además vuelve a los chats) y, de tablet para
+ * arriba, el "+" con todas las secciones; a la derecha el interruptor GENERAL
+ * del agente y los ajustes. En el teléfono el "+" no está: navega la barra de
+ * abajo (`NavInferior`), y dos menús con lo mismo confunden más de lo que
+ * ayudan.
  *
  * Se esconde adentro de un chat: ahí la barra la pone la propia pantalla del
  * chat, con la foto y el nombre de la persona. Dos barras apiladas se comerían
@@ -98,14 +106,14 @@ export function BarraSuperior({
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 backdrop-blur">
-      {/* --- Izquierda: las herramientas ------------------------------- */}
+      {/* --- Izquierda: la marca y, en pantallas grandes, el menú ------- */}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
             <button
               type="button"
               aria-label="Abrir el menú"
-              className="hover:bg-muted focus-visible:outline-ring relative flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="hover:bg-muted focus-visible:outline-ring relative hidden size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex"
             />
           }
         >
@@ -144,22 +152,33 @@ export function BarraSuperior({
               </span>
             ) : null}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* Las de cada tanto. En el teléfono viven en "Más". */}
+          <DropdownMenuItem render={<Link href="/integrantes" />}>
+            <GraduationCap aria-hidden="true" />
+            Integrantes
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/contactos" />}>
+            <Users aria-hidden="true" />
+            Contactos
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/checkouts" />}>
+            <ShoppingCart aria-hidden="true" />
+            Checkouts
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/*
-        El nombre es el botón de volver a los chats.
-        Desde Resumen, Alertas o Correcciones no había NINGUNA forma de volver
-        sin usar el botón de atrás del teléfono: había que abrir el "+" y
-        elegir. Es el mismo lugar donde en cualquier app se toca el logo para
-        volver al principio.
+        La marca es el botón de volver a los chats — el mismo lugar donde en
+        cualquier app se toca el logo para volver al principio.
       */}
       <Link
         href="/"
         aria-label="Volver a los chats"
-        className="hover:bg-muted focus-visible:outline-ring -mx-1 min-w-0 flex-1 truncate rounded-lg px-1 py-1 text-base font-semibold tracking-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="hover:bg-muted focus-visible:outline-ring -mx-1 flex min-w-0 flex-1 items-center rounded-lg px-1 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        Marle Nails
+        <Marca />
       </Link>
 
       {/* --- Derecha: el agente y los ajustes --------------------------- */}

@@ -9,7 +9,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  /* La serif editorial: marca, títulos de página y cifras grandes. NUNCA en
+     mensajes, botones chicos ni texto corrido — ahí manda la sans. */
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -44,6 +46,8 @@
   --color-instagram: var(--canal-instagram);
   /* Verde de éxito (membresía activa / lead ganado). */
   --color-exito: var(--exito);
+  /* Ámbar apagado para advertencias (ventana por vencer, pago con problemas). */
+  --color-advertencia: var(--advertencia);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -54,91 +58,121 @@
 }
 
 /*
- * Tema "Panel Marle Nails": base neutra + acento rosé (marca de belleza, sobrio).
- * Los colores de gráficos (chart-1..4) fueron validados con el validador de
- * paletas (banda de luminosidad, piso de croma, separación CVD y contraste):
+ * Tema "Marle Nails" (rediseño editorial 31/08/2026): marfil cálido de fondo,
+ * borgoña profundo como color de marca y rosé empolvado para superficies
+ * suaves. La referencia visual vive en design/mockups/.
+ *
+ * Reglas de la paleta:
+ *   - El borgoña (#6F263D) es EL color: botones primarios, navegación activa,
+ *     título activo. Se usa poco y por eso se nota.
+ *   - El rosé suave es superficie, nunca texto: chips, fondos de burbuja,
+ *     círculos de ícono.
+ *   - Éxito es un verde salvia y las advertencias un ámbar apagado: nada
+ *     fosforescente sobre el marfil.
+ *
+ * Los colores de gráficos (chart-1..4) NO se tocaron: fueron validados con el
+ * validador de paletas (banda de luminosidad, piso de croma, separación CVD y
+ * contraste) y el rosé #b34a63 ya pertenece a esta familia:
  *   light: #b34a63 rosé · #7c5cbf violeta · #0d9488 teal · #b18434 dorado
  *   dark:  #d06079 rosé · #9678d6 violeta · #17a89e teal · #b08430 dorado
  * Asignación fija: serie única → chart-1 · Instagram → chart-2 · WhatsApp → chart-3.
  */
 :root {
-  --background: oklch(0.99 0.003 20);
-  --foreground: oklch(0.16 0.01 20);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.01 20);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.01 20);
-  --primary: #a43e57;
-  --primary-foreground: #fff7f9;
-  --secondary: oklch(0.965 0.006 20);
-  --secondary-foreground: oklch(0.24 0.02 20);
-  --muted: oklch(0.965 0.006 20);
-  --muted-foreground: oklch(0.55 0.015 20);
-  --accent: #f7edf0;
-  --accent-foreground: #6d2a3c;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.008 20);
-  --input: oklch(0.92 0.008 20);
-  --ring: #d193a3;
+  --background: #fbf7f4;
+  --foreground: #242022;
+  --card: #fffdfc;
+  --card-foreground: #242022;
+  --popover: #fffdfc;
+  --popover-foreground: #242022;
+  --primary: #6f263d;
+  --primary-foreground: #fdf6f3;
+  --secondary: #f1dce2;
+  --secondary-foreground: #4a1929;
+  --muted: #f1e8e3;
+  --muted-foreground: #756d70;
+  --accent: #f5e4e9;
+  --accent-foreground: #4a1929;
+  --destructive: #b23a32;
+  --border: #e9dcd5;
+  --input: #e9dcd5;
+  --ring: #c9899b;
   --chart-1: #b34a63;
   --chart-2: #7c5cbf;
   --chart-3: #0d9488;
   --chart-4: #b18434;
   --chart-5: oklch(0.55 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.982 0.005 20);
-  --sidebar-foreground: oklch(0.2 0.01 20);
-  --sidebar-primary: #a43e57;
-  --sidebar-primary-foreground: #fff7f9;
-  --sidebar-accent: #f7edf0;
-  --sidebar-accent-foreground: #6d2a3c;
-  --sidebar-border: oklch(0.92 0.008 20);
-  --sidebar-ring: #d193a3;
+  --sidebar: #fffdfc;
+  --sidebar-foreground: #242022;
+  --sidebar-primary: #6f263d;
+  --sidebar-primary-foreground: #fdf6f3;
+  --sidebar-accent: #f5e4e9;
+  --sidebar-accent-foreground: #4a1929;
+  --sidebar-border: #e9dcd5;
+  --sidebar-ring: #c9899b;
   --canal-whatsapp: #0f766e;
   --canal-instagram: #7c5cbf;
-  --exito: #157f5f;
+  /* Salvia, no verde semáforo: convive con el marfil sin gritar. */
+  --exito: #4d7a57;
+  --advertencia: #96691c;
 }
 
 .dark {
-  --background: oklch(0.145 0.008 20);
-  --foreground: oklch(0.985 0.005 20);
-  --card: oklch(0.2 0.01 20);
-  --card-foreground: oklch(0.985 0.005 20);
-  --popover: oklch(0.2 0.01 20);
-  --popover-foreground: oklch(0.985 0.005 20);
-  --primary: #e8a3b3;
-  --primary-foreground: #331520;
-  --secondary: oklch(0.27 0.012 20);
-  --secondary-foreground: oklch(0.985 0.005 20);
-  --muted: oklch(0.27 0.012 20);
-  --muted-foreground: oklch(0.71 0.01 20);
-  --accent: #3b2a2f;
+  /* El mismo carácter cálido del claro, no un gris neutro con acentos: fondo
+     carbón con un dejo de borgoña y el rosé pasa a ser el color de marca
+     (el borgoña profundo no contrasta sobre oscuro). */
+  --background: #1a1215;
+  --foreground: #f3eaed;
+  --card: #241b1f;
+  --card-foreground: #f3eaed;
+  --popover: #241b1f;
+  --popover-foreground: #f3eaed;
+  --primary: #dca5b3;
+  --primary-foreground: #3a1622;
+  --secondary: #3b2b31;
+  --secondary-foreground: #f0dbe1;
+  --muted: #2e2328;
+  --muted-foreground: #ab9aa1;
+  --accent: #3b2a30;
   --accent-foreground: #f0d9df;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
   --ring: #a05a6d;
   --chart-1: #d06079;
   --chart-2: #9678d6;
   --chart-3: #17a89e;
   --chart-4: #b08430;
   --chart-5: oklch(0.65 0 0);
-  --sidebar: oklch(0.2 0.01 20);
-  --sidebar-foreground: oklch(0.985 0.005 20);
-  --sidebar-primary: #e8a3b3;
-  --sidebar-primary-foreground: #331520;
-  --sidebar-accent: #3b2a2f;
+  --sidebar: #241b1f;
+  --sidebar-foreground: #f3eaed;
+  --sidebar-primary: #dca5b3;
+  --sidebar-primary-foreground: #3a1622;
+  --sidebar-accent: #3b2a30;
   --sidebar-accent-foreground: #f0d9df;
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: #a05a6d;
   --canal-whatsapp: #2fbfae;
   --canal-instagram: #b7a1ec;
-  --exito: #34c28f;
+  --exito: #7fb98b;
+  --advertencia: #d2a458;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Quien pidió menos movimiento, lo tiene: todo se asienta al instante (la
+     fila deslizada, el sheet, los menús). Nada depende de VER la animación. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   body {
     @apply bg-background text-foreground;

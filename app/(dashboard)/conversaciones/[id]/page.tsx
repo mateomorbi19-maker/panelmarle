@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BellRing, ExternalLink, Megaphone } from "lucide-react";
+import { CANAL } from "@/components/canal-badge";
 import { AutoRefrescar } from "@/components/auto-refrescar";
 import { AvatarContacto } from "@/components/conversaciones/avatar-contacto";
 import { PantallaChat } from "@/components/conversaciones/pantalla-chat";
@@ -80,9 +81,24 @@ export default async function ConversacionPage({
 
         <AvatarContacto conversacion={conversacion} tamano="barra" />
 
-        <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold">
-          {identidad(conversacion)}
-        </h1>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="truncate text-[15px] leading-tight font-semibold">
+            {identidad(conversacion)}
+          </h1>
+          {/*
+            Dónde y en qué anda, en una línea: el canal con nombre (nunca solo
+            un color) y el estado del agente SOLO si hay algo que decir —
+            "contesta" es lo normal y no gasta renglón.
+          */}
+          <p className="text-muted-foreground flex items-center gap-1 truncate text-[11px] leading-tight">
+            {CANAL[conversacion.canal].etiqueta}
+            {conversacion.necesitaHumano ? (
+              <span className="text-primary font-medium">· te espera</span>
+            ) : conversacion.agenteApagado ? (
+              <span>· agente apagado</span>
+            ) : null}
+          </p>
+        </div>
 
         {enlaceAlternativo ? (
           <a

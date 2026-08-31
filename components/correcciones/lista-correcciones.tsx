@@ -55,39 +55,64 @@ function Tarjeta({
 
   return (
     <Card size="sm" className={cn(resuelta && "opacity-70")}>
-      <CardContent className="flex flex-col gap-3">
-        {/* Quién y cuándo */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="min-w-0 truncate font-medium">
-            {correccion.contacto ?? "Chat sin identificar"}
+      <CardContent className="flex flex-col gap-2.5">
+        {/*
+          Quién y cuándo — con la llave en rosé, no la campana en borgoña: una
+          ALERTA es una clienta esperando; una CORRECCIÓN es un ajuste al
+          agente. Se parecen de estructura a propósito (se aprende una vez) y
+          se distinguen de ícono y de tono a propósito también.
+        */}
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-full",
+              resuelta
+                ? "bg-muted text-muted-foreground"
+                : "bg-secondary text-secondary-foreground"
+            )}
+          >
+            <Wrench className="size-4" />
           </span>
-          {correccion.canal ? <CanalBadge canal={correccion.canal} /> : null}
-          <span className="text-muted-foreground ml-auto shrink-0 text-xs">
-            {correccion.cuando}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-[15px] leading-tight font-semibold">
+              {correccion.contacto ?? "Chat sin identificar"}
+            </span>
+            <span className="text-muted-foreground text-xs">
+              {resuelta ? "Ya arreglada" : "Por arreglar"} · {correccion.cuando}
+            </span>
+          </div>
+          {correccion.canal ? (
+            <span className="shrink-0">
+              <CanalBadge canal={correccion.canal} />
+            </span>
+          ) : null}
         </div>
 
+        {/* Qué estuvo mal: LA corrección. Va primero y con más peso que la
+            cita, porque es lo que hay que hacer. */}
+        <p className="text-sm leading-snug font-medium whitespace-pre-wrap">
+          {correccion.descripcion}
+        </p>
+
         {/*
-          Lo que dijo el agente, tal como estaba cuando se anotó. Es una COPIA:
-          por eso se sigue leyendo aunque el chat ya no exista.
+          Lo que dijo el agente, citado tal como estaba cuando se anotó. Es una
+          COPIA: por eso se sigue leyendo aunque el chat ya no exista.
         */}
         {correccion.mensajes.length > 0 ? (
-          <ul className="border-border/70 flex flex-col gap-1.5 border-l-2 pl-3">
+          <ul className="border-l-primary/30 bg-secondary/40 flex flex-col gap-2 rounded-r-lg border-l-2 py-2 pr-3 pl-3">
             {correccion.mensajes.map((mensaje) => (
               <li key={mensaje.id} className="flex flex-col">
                 <span className="text-[13px] leading-snug whitespace-pre-wrap">
-                  {mensaje.texto}
+                  “{mensaje.texto}”
                 </span>
                 <span className="text-muted-foreground text-[11px] tabular-nums">
-                  {mensaje.hora}
+                  Agente · {mensaje.hora}
                 </span>
               </li>
             ))}
           </ul>
         ) : null}
-
-        {/* Qué estuvo mal */}
-        <p className="text-sm whitespace-pre-wrap">{correccion.descripcion}</p>
 
         {/* Qué hacer con ella */}
         <div className="flex flex-wrap items-center gap-2">

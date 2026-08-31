@@ -99,27 +99,29 @@ export default async function InicioPage() {
         titulo="Resumen"
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* De a DOS por fila también en el teléfono: cuatro cifras que se
+          comparan tienen que verse juntas, no en una torre de tarjetas. */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiCard
-          titulo="Contactos totales"
+          titulo="Contactos"
           valor={contactos.length}
           detalle={`${calientes} calientes ahora`}
           icono={Users}
         />
         <KpiCard
-          titulo="Integrantes activas"
+          titulo="Integrantes"
           valor={activas}
-          detalle={`${nuevas30} nuevas en los últimos 30 días`}
+          detalle={`${nuevas30} nuevas en 30 días`}
           icono={GraduationCap}
         />
         <KpiCard
-          titulo="Checkouts abandonados"
+          titulo="Checkouts"
           valor={checkouts.length}
           detalle={`${formatearUSD(montoSinCobrar)} sin cobrar`}
           icono={ShoppingCart}
         />
         <KpiCard
-          titulo="Alertas pendientes"
+          titulo="Alertas"
           valor={pendientes.length}
           detalle={`${atendidas} ya atendidas`}
           icono={BellRing}

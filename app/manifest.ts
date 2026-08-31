@@ -15,8 +15,10 @@ export default function manifest(): MetadataRoute.Manifest {
       "Los chats de WhatsApp e Instagram de Marle Nails, y el agente que los contesta.",
     start_url: "/",
     display: "standalone",
-    background_color: "#1a1a6e",
-    theme_color: "#1a1a6e",
+    // El marfil y el borgoña de la identidad (ver globals.css): el splash de
+    // Android abre del color del panel, no de un azul que no es de nadie.
+    background_color: "#fbf7f4",
+    theme_color: "#6f263d",
     lang: "es",
     icons: [
       { src: "/icono-192.png", sizes: "192x192", type: "image/png" },

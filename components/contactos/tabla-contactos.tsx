@@ -164,7 +164,39 @@ export function TablaContactos({ filas }: { filas: ContactoFila[] }) {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <>
+        {/*
+          En el teléfono, renglones apilados: la tabla de cinco columnas
+          escondía estado y fecha detrás de un scroll lateral. Son los mismos
+          datos y la misma búsqueda; solo cambia cómo se apilan.
+        */}
+        <ul className="divide-border/70 divide-y rounded-xl border lg:hidden">
+          {visibles.map((fila) => (
+            <li key={fila.id} className="flex flex-col gap-1.5 p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-[15px] leading-tight font-semibold">
+                    {fila.nombre}
+                  </span>
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {fila.telefono}
+                  </span>
+                </div>
+                <span className="shrink-0">
+                  <EstadoBadge estado={fila.estado} />
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CanalBadge canal={fila.canal} />
+                <span className="text-muted-foreground ml-auto text-xs">
+                  Desde el {fila.fechaFormateada}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto rounded-lg border lg:block">
           <Table>
           <TableHeader>
             <TableRow>
@@ -194,6 +226,7 @@ export function TablaContactos({ filas }: { filas: ContactoFila[] }) {
           </TableBody>
           </Table>
         </div>
+        </>
       )}
     </div>
   );

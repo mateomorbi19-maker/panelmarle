@@ -45,12 +45,10 @@ export function SeleccionMensajes({
         return (
           <div key={mensaje.id} className="flex flex-col gap-2">
             {separador ? (
-              <div className="my-2 flex items-center gap-3">
-                <span className="bg-border h-px flex-1" />
-                <span className="text-muted-foreground text-xs first-letter:uppercase">
+              <div className="my-2 flex justify-center">
+                <span className="bg-card text-muted-foreground rounded-full border px-3 py-1 text-[11px] font-medium first-letter:uppercase">
                   {separador}
                 </span>
-                <span className="bg-border h-px flex-1" />
               </div>
             ) : null}
 

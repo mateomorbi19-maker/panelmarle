@@ -172,11 +172,15 @@ export function Burbuja({
       <div
         className={cn(
           "flex max-w-[min(34rem,85%)] flex-col gap-1 rounded-2xl px-3.5 py-2",
+          // La clienta escribe sobre "papel" (la superficie de tarjeta, con su
+          // borde finito); lo que sale de la cuenta va en rosé — más cargado
+          // cuando lo escribió Marle que cuando lo escribió el agente, así se
+          // distinguen de reojo sin leer la firma.
           esClienta
-            ? "bg-muted rounded-bl-sm"
+            ? "bg-card rounded-bl-sm ring-1 ring-border"
             : mensaje.rol === "humano"
-              ? "bg-primary/20 text-foreground rounded-br-sm ring-1 ring-primary/30"
-              : "bg-primary/10 text-foreground rounded-br-sm ring-1 ring-primary/15",
+              ? "bg-primary/16 text-foreground rounded-br-sm ring-1 ring-primary/25"
+              : "bg-primary/8 text-foreground rounded-br-sm ring-1 ring-primary/12",
           pendiente && "opacity-60",
           fallo && "bg-destructive/5 ring-destructive/30"
         )}
@@ -260,12 +264,12 @@ export function Transcripcion({ mensajes }: { mensajes: Mensaje[] }) {
         return (
           <div key={mensaje.id} className="flex flex-col gap-2">
             {separador ? (
-              <div className="my-2 flex items-center gap-3">
-                <span className="bg-border h-px flex-1" />
-                <span className="text-muted-foreground text-xs first-letter:uppercase">
+              // Una pastilla centrada, como en cualquier mensajería: se
+              // encuentra al scrollear rápido mejor que una línea con texto.
+              <div className="my-2 flex justify-center">
+                <span className="bg-card text-muted-foreground rounded-full border px-3 py-1 text-[11px] font-medium first-letter:uppercase">
                   {separador}
                 </span>
-                <span className="bg-border h-px flex-1" />
               </div>
             ) : null}
             <Burbuja mensaje={mensaje} />

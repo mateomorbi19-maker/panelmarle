@@ -165,14 +165,19 @@ function Fila({
           El tinte va acá adentro y no en el <li>: lo que se desliza tiene que
           ser opaco para tapar el botón, así que el color de la fila viaja con
           ella. Afuera se perdería apenas se corre.
+
+          El filo de color a la izquierda dice "esta fila pide algo" incluso
+          barriendo la lista rapidísimo; el ícono de la derecha dice QUÉ pide.
+          Falla de entrega manda sobre derivación: es la más grave.
         */}
         <div
           className={cn(
-            fila.necesitaHumano && "bg-primary/[0.04]",
-            fila.fallidos > 0 && "bg-destructive/[0.04]"
+            "border-l-2 border-l-transparent",
+            fila.necesitaHumano && "bg-primary/[0.05] border-l-primary",
+            fila.fallidos > 0 && "bg-destructive/[0.05] border-l-destructive"
           )}
         >
-          <div className="flex items-center gap-2 px-4 py-2.5">
+          <div className="flex items-center gap-2 px-4 py-3">
             <Link
               href={`/conversaciones/${fila.id}`}
               className="focus-visible:outline-ring flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -379,6 +384,28 @@ export function ListaConversaciones({
   return (
     <div className="flex flex-col">
       {/*
+        El título editorial. Scrollea con la lista a propósito: es identidad y
+        contexto ("cuántas te esperan"), no una herramienta, así que no puede
+        quedarse comiendo pantalla mientras se recorren los chats.
+      */}
+      <div className="flex items-baseline justify-between gap-3 px-4 pt-4 pb-2">
+        <h1 className="font-heading text-[1.75rem] leading-tight font-semibold tracking-tight">
+          Chats
+        </h1>
+        <p className="text-muted-foreground shrink-0 text-xs">
+          {cuentas.pendientes > 0 ? (
+            <span className="text-primary font-medium">
+              {cuentas.pendientes === 1
+                ? "1 te espera"
+                : `${cuentas.pendientes} te esperan`}
+            </span>
+          ) : (
+            `${vistas.length} conversaciones`
+          )}
+        </p>
+      </div>
+
+      {/*
         Los filtros, fijos arriba mientras se baja por los chats.
 
         Acá había también un buscador y se sacó: en el teléfono, tocarlo hacía
@@ -404,7 +431,7 @@ export function ListaConversaciones({
                     "focus-visible:outline-ring shrink-0 rounded-full border px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
                     activo
                       ? "bg-primary text-primary-foreground border-transparent font-medium"
-                      : "border-border text-muted-foreground hover:bg-muted"
+                      : "border-border/80 bg-card text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {etiqueta}
