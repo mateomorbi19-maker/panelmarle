@@ -539,7 +539,9 @@ export function CuadroRespuesta({
               archivo ? "Agregale un comentario…" : "Escribí un mensaje…"
             }
             aria-label={`Mensaje para ${nombre}`}
-            className="max-h-32 min-h-6 w-full resize-none bg-transparent text-[15px] leading-6 outline-none disabled:opacity-50"
+            // 16 px, no 15: con menos, Safari en el iPhone hace zoom solo al
+            // tocar el campo y no vuelve al salir.
+            className="max-h-32 min-h-6 w-full resize-none bg-transparent text-base leading-6 outline-none disabled:opacity-50"
           />
         </div>
 

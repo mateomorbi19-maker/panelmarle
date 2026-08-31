@@ -147,9 +147,20 @@ export function BarraSuperior({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight">
+      {/*
+        El nombre es el botón de volver a los chats.
+        Desde Resumen, Alertas o Correcciones no había NINGUNA forma de volver
+        sin usar el botón de atrás del teléfono: había que abrir el "+" y
+        elegir. Es el mismo lugar donde en cualquier app se toca el logo para
+        volver al principio.
+      */}
+      <Link
+        href="/"
+        aria-label="Volver a los chats"
+        className="hover:bg-muted focus-visible:outline-ring -mx-1 min-w-0 flex-1 truncate rounded-lg px-1 py-1 text-base font-semibold tracking-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
         Marle Nails
-      </span>
+      </Link>
 
       {/* --- Derecha: el agente y los ajustes --------------------------- */}
       <div className="flex shrink-0 items-center gap-2">

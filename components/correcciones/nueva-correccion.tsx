@@ -193,7 +193,14 @@ export function NuevaCorreccion({
             // el botón de dictar, que es justo por donde se entra a esto. Ya se
             // sacó una vez del chat por lo mismo.
             placeholder="Ej.: le dijo que la Academia sale 47 y hoy está 39."
-            className="bg-muted focus-visible:outline-ring max-h-52 min-h-28 w-full resize-none rounded-2xl px-4 py-3 text-[15px] leading-6 outline-none focus-visible:outline-2 disabled:opacity-50"
+            /*
+              16 px CLAVADOS, y no 15. Con menos de 16, Safari en el iPhone
+              hace zoom solo al tocar el campo Y NO VUELVE al salir: se
+              terminaba la corrección y el chat quedaba agrandado. El panel no
+              limita el zoom a propósito (bloquearlo es una barrera de
+              accesibilidad), así que la única salida es que el texto mida 16.
+            */
+            className="bg-muted focus-visible:outline-ring max-h-52 min-h-28 w-full resize-none rounded-2xl px-4 py-3 text-base leading-6 outline-none focus-visible:outline-2 disabled:opacity-50"
           />
 
           {/* Lo que se está escuchando, mientras se escucha. */}

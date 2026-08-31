@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,29 +11,59 @@ import { cn } from "@/lib/utils";
  * entrar, buscar los tres puntos y volver — tres toques para algo que Marle
  * hace todo el tiempo, muchas veces seguidas.
  *
- * DETALLES QUE NO SON CAPRICHO:
+ * POR QUÉ ESTÁ ESCRITO ASÍ (primera versión: en el teléfono se veía asomar un
+ * pedacito del botón y la fila volvía sola a su lugar):
  *
- * 1. El gesto se DECIDE en los primeros píxeles. Si el dedo va más para abajo
- *    que para el costado, se suelta y la lista scrollea como siempre. Sin esto
- *    la lista se traba: cualquier scroll medio torcido corría una fila.
+ * 1. LA POSICIÓN VIVE EN UN `ref`, NO EN EL ESTADO DE REACT. `pointermove`
+ *    llega 60-120 veces por segundo y React lo trata como evento "continuo":
+ *    puede agrupar o demorar esas actualizaciones. Al soltar, el `pointerup`
+ *    leía una posición vieja —o directamente `null`— y decidía "no llegó",
+ *    devolviendo la fila a su lugar aunque el dedo hubiera ido hasta el final.
+ *    Con un ref, lo que decide es SIEMPRE el último valor real.
  *
- * 2. `touch-action: pan-y` deja el scroll vertical en manos del navegador (que
- *    lo hace bien, a 60 fps) y nos entrega solo lo horizontal.
+ * 2. MIENTRAS SE ARRASTRA SE PINTA A MANO (`el.style.transform`), sin pasar por
+ *    React. Un re-render por cada movimiento del dedo se siente pegajoso, y una
+ *    fila que no sigue al dedo hace que uno la empuje más corto y más rápido —
+ *    justo el gesto que antes no abría nada.
  *
- * 3. Después de arrastrar NO se navega. La fila entera es un enlace al chat: si
- *    el click siguiera su curso, deslizar abriría la conversación.
+ * 3. DECIDE TAMBIÉN LA VELOCIDAD, no solo la distancia. En un teléfono nadie
+ *    arrastra despacio 100 px: se tira un manotazo corto y rápido. Con umbral
+ *    de distancia solo, ese manotazo no alcanzaba nunca y el gesto parecía roto.
+ *
+ * 4. EL GESTO SE DECIDE EN LOS PRIMEROS 8 px comparando lo horizontal contra lo
+ *    vertical, y `touch-action: pan-y` deja el scroll vertical en manos del
+ *    navegador. Sin eso, cualquier scroll medio torcido corría una fila.
+ *
+ * 5. SI EL NAVEGADOR CORTA EL GESTO (`pointercancel`, que en el teléfono pasa
+ *    cuando el sistema se queda con el toque) NO se descarta lo hecho: se
+ *    decide con lo que se alcanzó a arrastrar. Descartarlo era otra forma de
+ *    que la fila volviera sola.
  */
 
 /** Cuánto se corre la fila cuando queda abierta. */
 const ANCHO = 104;
-/** Cuánto hay que arrastrar para que quede abierta (o para que se cierre). */
-const UMBRAL_ABRIR = 40;
+/** Arrastre suficiente para que quede abierta (o para que se cierre). */
+const UMBRAL_ABRIR = 28;
+/**
+ * Un manotazo alcanza aunque sea corto: 0,35 px por milisegundo son unos
+ * 350 px/s, bien por debajo de un gesto normal de teléfono (500-2000 px/s) y
+ * bien por arriba de un dedo que se apoya y duda.
+ */
+const VELOCIDAD_MANOTAZO = 0.35;
 /** A partir de acá se decide si el gesto es horizontal o vertical. */
 const UMBRAL_GESTO = 8;
 /** Cuánto se puede estirar más allá del tope, para que no se sienta un muro. */
 const ELASTICO = 0.25;
-/** Cuánto dura, después de soltar, el click que hay que ignorar. */
-const GRACIA_CLICK = 400;
+/**
+ * Cuánto dura, después de soltar, el click que hay que ignorar.
+ *
+ * El click que hay que tragarse llega en el mismo suspiro que el `pointerup`
+ * (mismo cuadro), así que con esto sobra. Estaba en 400 ms y era demasiado: si
+ * cerrabas una fila y tocabas el chat enseguida, el toque se perdía.
+ */
+const GRACIA_CLICK = 250;
+/** Lo que tarda la fila en acomodarse cuando se la suelta. */
+const TRANSICION = "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 type Direccion = "sin-decidir" | "horizontal" | "vertical";
 
@@ -67,8 +97,14 @@ export function Deslizable({
   children: React.ReactNode;
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
+  const contenido = useRef<HTMLDivElement>(null);
   const inicio = useRef<{ x: number; y: number } | null>(null);
   const direccion = useRef<Direccion>("sin-decidir");
+  /** Dónde está la fila AHORA. Esto es lo que manda, no el estado de React. */
+  const posicion = useRef(0);
+  /** Último movimiento, para saber a qué velocidad venía el dedo. */
+  const ultimo = useRef({ x: 0, t: 0 });
+  const velocidad = useRef(0);
   /**
    * Cuándo terminó el último arrastre.
    *
@@ -77,12 +113,28 @@ export function Deslizable({
    * siempre y se comería el próximo Enter del teclado. Y con el mouse sí lo
    * dispara: ahí hay que tragarse ese click y NADA más, porque si no la fila
    * se cerraba en el mismo gesto con que se acababa de abrir.
+   *
+   * Arranca en -Infinity y NO en 0. `performance.now()` cuenta desde que empezó
+   * a cargar la página: con 0, durante el primer cuarto de segundo la cuenta
+   * daba "recién arrastraste" y se tragaba TODOS los toques. O sea: abrías el
+   * panel, tocabas un chat enseguida y no pasaba nada.
    */
-  const finArrastre = useRef(0);
-  const [desplazamiento, setDesplazamiento] = useState<number | null>(null);
+  const finArrastre = useRef(Number.NEGATIVE_INFINITY);
 
-  const arrastrando = desplazamiento !== null;
-  const x = desplazamiento ?? (abierta ? -ANCHO : 0);
+  function pintar(x: number, suave: boolean) {
+    const el = contenido.current;
+    if (!el) return;
+    el.style.transition = suave ? TRANSICION : "none";
+    el.style.transform = `translate3d(${x}px, 0, 0)`;
+  }
+
+  // El estado de verdad lo tiene el padre (una fila abierta por vez). Cuando
+  // cambia —porque se abrió otra, o porque se guardó el cambio— la fila se
+  // acomoda sola.
+  useEffect(() => {
+    posicion.current = abierta ? -ANCHO : 0;
+    pintar(posicion.current, true);
+  }, [abierta]);
 
   // Abierta y tocás en cualquier otro lado: se cierra. Como en el teléfono.
   useEffect(() => {
@@ -100,6 +152,8 @@ export function Deslizable({
     if (e.pointerType === "mouse" && e.button !== 0) return;
     inicio.current = { x: e.clientX, y: e.clientY };
     direccion.current = "sin-decidir";
+    ultimo.current = { x: e.clientX, t: e.timeStamp };
+    velocidad.current = 0;
   }
 
   function alMover(e: React.PointerEvent<HTMLDivElement>) {
@@ -111,7 +165,8 @@ export function Deslizable({
 
     if (direccion.current === "sin-decidir") {
       if (Math.abs(dx) < UMBRAL_GESTO && Math.abs(dy) < UMBRAL_GESTO) return;
-      direccion.current = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+      direccion.current =
+        Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
       // Con la captura, el dedo puede salirse de la fila sin que se corte el
       // gesto a la mitad.
       if (direccion.current === "horizontal") {
@@ -120,32 +175,52 @@ export function Deslizable({
     }
     if (direccion.current !== "horizontal") return;
 
+    // Velocidad instantánea, en px por milisegundo. Negativa = va a la
+    // izquierda, o sea abriendo.
+    const dt = e.timeStamp - ultimo.current.t;
+    if (dt > 0) velocidad.current = (e.clientX - ultimo.current.x) / dt;
+    ultimo.current = { x: e.clientX, t: e.timeStamp };
+
     const base = abierta ? -ANCHO : 0;
     let siguiente = base + dx;
     // Ni se corre para el otro lado ni se pasa del tope: más allá tira poco,
     // así se siente que hay un final sin que sea un golpe seco.
     if (siguiente > 0) siguiente = siguiente * ELASTICO;
     if (siguiente < -ANCHO) siguiente = -ANCHO + (siguiente + ANCHO) * ELASTICO;
-    setDesplazamiento(siguiente);
+
+    posicion.current = siguiente;
+    pintar(siguiente, false);
   }
 
   function alSoltar() {
-    const actual = desplazamiento;
-    inicio.current = null;
-    setDesplazamiento(null);
-
-    if (direccion.current !== "horizontal" || actual === null) {
+    if (direccion.current !== "horizontal") {
+      inicio.current = null;
       direccion.current = "sin-decidir";
       return;
     }
+
+    inicio.current = null;
     direccion.current = "sin-decidir";
     finArrastre.current = performance.now();
 
-    if (abierta) {
-      // Estando abierta, arrastrar para la derecha la cierra.
-      if (actual >= -ANCHO + UMBRAL_ABRIR) onCerrar();
-    } else if (actual <= -UMBRAL_ABRIR) {
-      onAbrir();
+    const x = posicion.current;
+    const v = velocidad.current;
+
+    // Abre si llegó lo suficiente O si venía rápido para la izquierda. Lo
+    // segundo es lo que hace que el manotazo corto de un teléfono funcione.
+    const quedaAbierta = abierta
+      ? !(x >= -ANCHO + UMBRAL_ABRIR || v >= VELOCIDAD_MANOTAZO)
+      : x <= -UMBRAL_ABRIR || v <= -VELOCIDAD_MANOTAZO;
+
+    // Se pinta ACÁ y no solo desde el efecto: si el estado no cambia (se
+    // arrastró un poco y se soltó) el efecto no vuelve a correr y la fila
+    // quedaría a mitad de camino.
+    posicion.current = quedaAbierta ? -ANCHO : 0;
+    pintar(posicion.current, true);
+
+    if (quedaAbierta !== abierta) {
+      if (quedaAbierta) onAbrir();
+      else onCerrar();
     }
   }
 
@@ -203,23 +278,25 @@ export function Deslizable({
       </div>
 
       <div
+        ref={contenido}
         onPointerDown={alApretar}
         onPointerMove={alMover}
         onPointerUp={alSoltar}
+        // Si el navegador se queda con el gesto, se decide igual con lo que se
+        // alcanzó a arrastrar en vez de tirarlo todo.
         onPointerCancel={alSoltar}
-        onLostPointerCapture={alSoltar}
         onClickCapture={alHacerClick}
         // La fila es un enlace y adentro hay una foto: sin esto, arrastrar con
         // el mouse arranca el "arrastrar y soltar" del navegador y el gesto se
         // corta a la mitad.
         onDragStart={(e) => e.preventDefault()}
-        style={{ transform: `translate3d(${x}px, 0, 0)`, touchAction: "pan-y" }}
-        className={cn(
-          // Opaca a propósito: si dejara pasar el fondo, se vería el botón
-          // rojo por debajo de la fila.
-          "bg-background relative",
-          !arrastrando && "transition-transform duration-200 ease-out"
-        )}
+        // El transform NO se declara acá: lo escribe `pintar()` a mano. Si
+        // React lo manejara, lo pisaría en cada re-render y el arrastre daría
+        // saltos.
+        style={{ touchAction: "pan-y", willChange: "transform" }}
+        // Opaca a propósito: si dejara pasar el fondo, se vería el botón rojo
+        // por debajo de la fila.
+        className="bg-background relative"
       >
         {children}
       </div>

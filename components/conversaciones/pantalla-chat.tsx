@@ -84,11 +84,23 @@ export function PantallaChat({
   // Un chat se abre por lo último. Y se mantiene ahí mientras el contenido
   // crezca: las fotos y los reels reportan su alto DESPUÉS de montar, así que
   // sin esto el chat abría a mitad de camino.
+  //
+  // Depende de `modo` A PROPÓSITO. Al marcar una corrección la transcripción se
+  // reemplaza entera por la versión con circulitos, y al volver se reemplaza de
+  // nuevo: si el observador siguiera mirando los nodos de antes estaría vigilando
+  // cosas que ya no están en la pantalla, y el chat quedaba tildado a mitad de
+  // camino en vez de mostrar lo último. Volviendo a correr, cada cambio de modo
+  // deja el chat como recién abierto.
   useEffect(() => {
     const caja = scroller.current;
     if (!caja) return;
 
+    pegadoAbajo.current = true;
+    // En dos tiempos: primero ya, y de nuevo cuando el navegador terminó de
+    // medir lo que se acaba de montar. Sin el segundo, al salir de una
+    // corrección el chat quedaba unos cientos de píxeles más arriba.
     irAlFondo();
+    const cuadro = requestAnimationFrame(irAlFondo);
 
     const observador = new ResizeObserver(() => {
       if (pegadoAbajo.current) irAlFondo();
@@ -96,8 +108,11 @@ export function PantallaChat({
     // Se observa el contenido, no la caja: lo que cambia de alto es lo de
     // adentro (una imagen que carga, un mensaje nuevo).
     for (const hijo of Array.from(caja.children)) observador.observe(hijo);
-    return () => observador.disconnect();
-  }, [irAlFondo]);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      observador.disconnect();
+    };
+  }, [irAlFondo, modo]);
 
   function alScrollear() {
     const caja = scroller.current;
