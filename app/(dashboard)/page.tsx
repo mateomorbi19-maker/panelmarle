@@ -88,13 +88,25 @@ function serializar(conversacion: Conversacion): ConversacionFila {
 }
 
 export default async function ChatsPage() {
-  const conversaciones = await db.conversaciones();
+  const [conversaciones, agente] = await Promise.all([
+    db.conversaciones(),
+    db.agenteGlobal(),
+  ]);
   const filas = [...conversaciones].sort(porUrgenciaYActividad).map(serializar);
 
   return (
     <>
       <AutoRefrescar segundos={20} />
-      <ListaConversaciones filas={filas} />
+      {/*
+        El estado general viaja hasta acá solo para poder AVISAR: deslizando una
+        fila se prende el agente de ese chat, y si el general está apagado eso
+        todavía no hace que nadie conteste. Callarlo haría parecer que el gesto
+        no funcionó.
+      */}
+      <ListaConversaciones
+        filas={filas}
+        agenteGlobalEncendido={agente.encendido}
+      />
     </>
   );
 }

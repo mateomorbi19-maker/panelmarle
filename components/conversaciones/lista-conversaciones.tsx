@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useOptimistic, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   BellRing,
+  Bot,
   BotOff,
   MessagesSquare,
   Reply,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AvatarContacto } from "@/components/conversaciones/avatar-contacto";
 import { CuadroRespuesta } from "@/components/conversaciones/cuadro-respuesta";
+import { Deslizable } from "@/components/conversaciones/deslizable";
 import {
   Empty,
   EmptyDescription,
@@ -34,6 +38,11 @@ import { cn } from "@/lib/utils";
  * Regla de oro acá: CADA CHAT ENTRA EN DOS LÍNEAS. Una para quién es y cuándo,
  * otra para lo último que se dijo. Nada se parte en tres renglones ni se pisa
  * con lo de al lado.
+ *
+ * Y se desliza: corriendo una fila de derecha a izquierda aparece el botón para
+ * apagar —o prender— el agente en ESE chat, sin tener que entrar. Antes eso
+ * eran tres toques (entrar, tres puntos, interruptor) para algo que se hace
+ * muchas veces seguidas. Ver `Deslizable`.
  */
 
 /** Fila ya serializada en el server: fechas y enlaces vienen resueltos. */
@@ -103,6 +112,10 @@ function Fila({
   abierta,
   onAlternar,
   onCerrar,
+  deslizada,
+  onDeslizar,
+  onCerrarDeslizada,
+  onCambiarAgente,
 }: {
   fila: ConversacionFila;
   abierta: boolean;
@@ -117,126 +130,233 @@ function Fila({
    * con el riesgo de que termine escribiéndole a quien no era.
    */
   onCerrar: () => void;
+  /** Está corrida y se ve el botón de prender/apagar el agente. */
+  deslizada: boolean;
+  onDeslizar: () => void;
+  onCerrarDeslizada: () => void;
+  onCambiarAgente: () => void;
 }) {
   const atencion = fila.necesitaHumano || fila.fallidos > 0;
+  const apagado = fila.agenteApagado;
 
   return (
-    <li
-      className={cn(
-        "border-border/60 border-b",
-        fila.necesitaHumano && "bg-primary/[0.04]",
-        fila.fallidos > 0 && "bg-destructive/[0.04]"
-      )}
-    >
-      <div className="flex items-center gap-2 px-4 py-2.5">
-        <Link
-          href={`/conversaciones/${fila.id}`}
-          className="focus-visible:outline-ring flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          <AvatarContacto conversacion={fila} />
-
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            {/* Línea 1: quién es · cuándo. Una sola línea, siempre. */}
-            <span className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "min-w-0 flex-1 truncate text-[15px] leading-tight",
-                  atencion ? "font-semibold" : "font-medium"
-                )}
-              >
-                {fila.identidad}
-              </span>
-              <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                {fila.cuando}
-              </span>
-            </span>
-
-            {/* Línea 2: lo último que se dijo · en qué anda. */}
-            <span className="flex items-center gap-2">
-              <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px] leading-tight">
-                {PREFIJO[fila.previewRol ?? "negocio"] ?? ""}
-                {fila.preview || "(sin texto)"}
-              </span>
-
-              <span className="flex shrink-0 items-center gap-1.5">
-                {fila.fallidos > 0 ? (
-                  <span title="No se pudo entregar">
-                    <AlertTriangle
-                      aria-hidden="true"
-                      className="text-destructive size-3.5"
-                    />
-                    <span className="sr-only">
-                      {fila.fallidos === 1
-                        ? "Un mensaje no llegó"
-                        : `${fila.fallidos} mensajes no llegaron`}
-                    </span>
-                  </span>
-                ) : null}
-                {fila.necesitaHumano ? (
-                  <span title="Necesita respuesta">
-                    <BellRing
-                      aria-hidden="true"
-                      className="text-primary size-3.5"
-                    />
-                    <span className="sr-only">Necesita respuesta</span>
-                  </span>
-                ) : fila.agenteApagado ? (
-                  <span title="El agente está apagado">
-                    <BotOff
-                      aria-hidden="true"
-                      className="text-muted-foreground size-3.5"
-                    />
-                    <span className="sr-only">El agente está apagado</span>
-                  </span>
-                ) : null}
-              </span>
-            </span>
-          </span>
-        </Link>
-
-        {/*
-          Contestar sin entrar al chat. Solo de tablet para arriba: en un
-          teléfono el gesto natural es tocar el chat y contestar adentro, y un
-          botón más por renglón sería ruido en la pantalla que más se mira.
-        */}
-        <button
-          type="button"
-          onClick={onAlternar}
-          aria-expanded={abierta}
-          aria-label={
-            abierta ? "Cerrar la respuesta" : `Responderle a ${fila.identidad}`
-          }
-          className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring hidden size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 sm:flex"
-        >
-          {abierta ? (
-            <X aria-hidden="true" className="size-4" />
+    <li className="border-border/60 border-b">
+      <Deslizable
+        abierta={deslizada}
+        onAbrir={onDeslizar}
+        onCerrar={onCerrarDeslizada}
+        accion={{
+          // El color dice QUÉ VA A PASAR, no en qué estado está: verde el que
+          // prende, rojo el que apaga. Es el mismo criterio del interruptor.
+          etiqueta: apagado ? "Activar" : "Apagar",
+          tono: apagado ? "exito" : "peligro",
+          icono: apagado ? (
+            <Bot aria-hidden="true" className="size-5" />
           ) : (
-            <Reply aria-hidden="true" className="size-4" />
+            <BotOff aria-hidden="true" className="size-5" />
+          ),
+          onAccion: onCambiarAgente,
+          descripcion: apagado
+            ? `Prender el agente en el chat de ${fila.identidad}`
+            : `Apagar el agente en el chat de ${fila.identidad}`,
+        }}
+      >
+        {/*
+          El tinte va acá adentro y no en el <li>: lo que se desliza tiene que
+          ser opaco para tapar el botón, así que el color de la fila viaja con
+          ella. Afuera se perdería apenas se corre.
+        */}
+        <div
+          className={cn(
+            fila.necesitaHumano && "bg-primary/[0.04]",
+            fila.fallidos > 0 && "bg-destructive/[0.04]"
           )}
-        </button>
-      </div>
+        >
+          <div className="flex items-center gap-2 px-4 py-2.5">
+            <Link
+              href={`/conversaciones/${fila.id}`}
+              className="focus-visible:outline-ring flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              <AvatarContacto conversacion={fila} />
 
-      {abierta ? (
-        <div className="flex flex-col gap-2 px-4 pt-1 pb-3">
-          <CuadroRespuesta
-            conversacionId={fila.id}
-            canal={fila.canal}
-            nombre={fila.identidad}
-            ventana={fila.ventana}
-            agenteApagado={fila.agenteApagado}
-            enlaceAlternativo={fila.enlaceAlternativo}
-            onEnviado={onCerrar}
-            autoFoco
-          />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                {/* Línea 1: quién es · cuándo. Una sola línea, siempre. */}
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate text-[15px] leading-tight",
+                      atencion ? "font-semibold" : "font-medium"
+                    )}
+                  >
+                    {fila.identidad}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                    {fila.cuando}
+                  </span>
+                </span>
+
+                {/* Línea 2: lo último que se dijo · en qué anda. */}
+                <span className="flex items-center gap-2">
+                  <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px] leading-tight">
+                    {PREFIJO[fila.previewRol ?? "negocio"] ?? ""}
+                    {fila.preview || "(sin texto)"}
+                  </span>
+
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {fila.fallidos > 0 ? (
+                      <span title="No se pudo entregar">
+                        <AlertTriangle
+                          aria-hidden="true"
+                          className="text-destructive size-3.5"
+                        />
+                        <span className="sr-only">
+                          {fila.fallidos === 1
+                            ? "Un mensaje no llegó"
+                            : `${fila.fallidos} mensajes no llegaron`}
+                        </span>
+                      </span>
+                    ) : null}
+                    {fila.necesitaHumano ? (
+                      <span title="Necesita respuesta">
+                        <BellRing
+                          aria-hidden="true"
+                          className="text-primary size-3.5"
+                        />
+                        <span className="sr-only">Necesita respuesta</span>
+                      </span>
+                    ) : apagado ? (
+                      <span title="El agente está apagado">
+                        <BotOff
+                          aria-hidden="true"
+                          className="text-muted-foreground size-3.5"
+                        />
+                        <span className="sr-only">El agente está apagado</span>
+                      </span>
+                    ) : null}
+                  </span>
+                </span>
+              </span>
+            </Link>
+
+            {/*
+              Contestar sin entrar al chat. Solo de tablet para arriba: en un
+              teléfono el gesto natural es tocar el chat y contestar adentro, y
+              un botón más por renglón sería ruido en la pantalla que más se
+              mira.
+            */}
+            <button
+              type="button"
+              onClick={onAlternar}
+              aria-expanded={abierta}
+              aria-label={
+                abierta
+                  ? "Cerrar la respuesta"
+                  : `Responderle a ${fila.identidad}`
+              }
+              className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring hidden size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 sm:flex"
+            >
+              {abierta ? (
+                <X aria-hidden="true" className="size-4" />
+              ) : (
+                <Reply aria-hidden="true" className="size-4" />
+              )}
+            </button>
+          </div>
+
+          {abierta ? (
+            <div className="flex flex-col gap-2 px-4 pt-1 pb-3">
+              <CuadroRespuesta
+                conversacionId={fila.id}
+                canal={fila.canal}
+                nombre={fila.identidad}
+                ventana={fila.ventana}
+                agenteApagado={fila.agenteApagado}
+                enlaceAlternativo={fila.enlaceAlternativo}
+                onEnviado={onCerrar}
+                autoFoco
+              />
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </Deslizable>
     </li>
   );
 }
 
-export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
+export function ListaConversaciones({
+  filas,
+  agenteGlobalEncendido = true,
+}: {
+  filas: ConversacionFila[];
+  /**
+   * El interruptor GENERAL. No bloquea el gesto —prender un chat suelto es un
+   * cambio real y queda guardado— pero cambia lo que hay que avisar: con el
+   * general apagado, prenderlo acá todavía no hace que nadie conteste.
+   */
+  agenteGlobalEncendido?: boolean;
+}) {
+  const router = useRouter();
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [respondiendo, setRespondiendo] = useState<string | null>(null);
+  // Una sola fila corrida por vez: dos botones rojos abiertos al mismo tiempo
+  // son dos maneras de tocar el que no era.
+  const [deslizada, setDeslizada] = useState<string | null>(null);
+
+  // El ícono del agente cambia APENAS se toca, sin esperar al servidor. Cuando
+  // llega el dato real React descarta el valor optimista solo; si el servidor
+  // dice que no, vuelve como estaba.
+  const [vistas, marcarAgente] = useOptimistic(
+    filas,
+    (actuales, cambio: { id: string; apagado: boolean }) =>
+      actuales.map((f) =>
+        f.id === cambio.id ? { ...f, agenteApagado: cambio.apagado } : f
+      )
+  );
+
+  async function guardarAgente(fila: ConversacionFila, encendido: boolean) {
+    try {
+      const res = await fetch(`/api/conversaciones/${fila.id}/agente`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ encendido }),
+      });
+      const datos = await res.json();
+
+      if (!res.ok) {
+        toast.error(datos?.error ?? "No se pudo cambiar el estado del agente.");
+        // No sabemos de qué lado quedó: mejor volver a preguntar que dejar la
+        // lista mostrando algo que no es.
+        router.refresh();
+        return;
+      }
+
+      toast.success(
+        encendido
+          ? `El agente vuelve a contestar en el chat de ${fila.identidad}.` +
+              // Prenderlo acá con el general apagado es un cambio real pero
+              // todavía no se nota: hay que decirlo o parece que no anduvo.
+              (agenteGlobalEncendido
+                ? ""
+                : " Ojo: el interruptor general sigue apagado.")
+          : `El agente quedó apagado en el chat de ${fila.identidad}.`
+      );
+      router.refresh();
+    } catch {
+      toast.error("No se pudo hablar con el servidor. Fijate la conexión.");
+      router.refresh();
+    }
+  }
+
+  function alternarAgente(fila: ConversacionFila) {
+    const encendido = fila.agenteApagado;
+    // La fila vuelve a su lugar en el acto: lo que confirma que pasó algo es el
+    // ícono del renglón, no que el botón se quede abierto.
+    setDeslizada(null);
+    startTransition(async () => {
+      marcarAgente({ id: fila.id, apagado: !encendido });
+      await guardarAgente(fila, encendido);
+    });
+  }
 
   function pasaFiltro(fila: ConversacionFila, cual: Filtro): boolean {
     if (cual === "instagram") return fila.canal === "instagram";
@@ -247,12 +367,12 @@ export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
     return true;
   }
 
-  const visibles = filas.filter((fila) => pasaFiltro(fila, filtro));
+  const visibles = vistas.filter((fila) => pasaFiltro(fila, filtro));
 
   const cuentas = Object.fromEntries(
     FILTROS.map(({ valor }) => [
       valor,
-      filas.filter((f) => pasaFiltro(f, valor)).length,
+      vistas.filter((f) => pasaFiltro(f, valor)).length,
     ])
   ) as Record<Filtro, number>;
 
@@ -333,6 +453,12 @@ export function ListaConversaciones({ filas }: { filas: ConversacionFila[] }) {
                   actual === fila.id ? null : actual
                 )
               }
+              deslizada={deslizada === fila.id}
+              onDeslizar={() => setDeslizada(fila.id)}
+              onCerrarDeslizada={() =>
+                setDeslizada((actual) => (actual === fila.id ? null : actual))
+              }
+              onCambiarAgente={() => alternarAgente(fila)}
             />
           ))}
         </ul>
