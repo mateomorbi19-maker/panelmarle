@@ -12,6 +12,7 @@ import {
   Sun,
   Plus,
   Settings,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -29,8 +30,8 @@ import { cn } from "@/lib/utils";
 /**
  * La barra de arriba del panel.
  *
- * A la izquierda el "+" con las herramientas; a la derecha el interruptor
- * GENERAL del agente y los ajustes.
+ * A la izquierda el "+" con las herramientas —Resumen, Alertas y
+ * Correcciones—; a la derecha el interruptor GENERAL del agente y los ajustes.
  *
  * Se esconde adentro de un chat: ahí la barra la pone la propia pantalla del
  * chat, con la foto y el nombre de la persona. Dos barras apiladas se comerían
@@ -38,9 +39,12 @@ import { cn } from "@/lib/utils";
  */
 export function BarraSuperior({
   alertasPendientes = 0,
+  correccionesPendientes = 0,
   agenteEncendido,
 }: {
   alertasPendientes?: number;
+  /** Errores del agente anotados y todavía sin arreglar. */
+  correccionesPendientes?: number;
   agenteEncendido: boolean;
 }) {
   const pathname = usePathname();
@@ -107,7 +111,7 @@ export function BarraSuperior({
         >
           <Plus aria-hidden="true" className="size-5" />
           {/* El punto avisa que hay algo esperando sin tener que abrir. */}
-          {alertasPendientes > 0 ? (
+          {alertasPendientes > 0 || correccionesPendientes > 0 ? (
             <span className="bg-primary border-background absolute top-1 right-1 size-2.5 rounded-full border-2" />
           ) : null}
         </DropdownMenuTrigger>
@@ -123,6 +127,20 @@ export function BarraSuperior({
             {alertasPendientes > 0 ? (
               <span className="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 text-xs font-medium tabular-nums">
                 {alertasPendientes}
+              </span>
+            ) : null}
+          </DropdownMenuItem>
+          {/*
+            Lo que hay que arreglarle al agente. Va acá y no adentro de un chat
+            porque se leen todas juntas: son la lista de cambios pendientes del
+            prompt, no algo de una conversación en particular.
+          */}
+          <DropdownMenuItem render={<Link href="/correcciones" />}>
+            <Wrench aria-hidden="true" />
+            Correcciones
+            {correccionesPendientes > 0 ? (
+              <span className="bg-primary text-primary-foreground ml-auto rounded-full px-1.5 text-xs font-medium tabular-nums">
+                {correccionesPendientes}
               </span>
             ) : null}
           </DropdownMenuItem>

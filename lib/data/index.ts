@@ -14,12 +14,20 @@
  *                   checkout.session.expired) — todavía no existen.
  *   alertas       → ✅ REAL (27/08/2026): tabla escalated_conversations, que
  *                   escribe el propio agente al derivar a una persona.
+ *   correcciones  → ✅ REAL (31/08/2026): tabla `correcciones`, la ÚNICA que
+ *                   escribe el panel y nadie más. SQL en supabase/correcciones.sql.
  *
  * Al conectar el resto, se cambia SOLO este archivo.
  */
 import { getAlertas } from "./mock/alertas";
 import { getCheckouts } from "./mock/checkouts";
 import { getContactos } from "./mock/contactos";
+import {
+  borrarCorreccion,
+  cambiarEstadoCorreccion,
+  crearCorreccion,
+  getCorrecciones,
+} from "./mock/correcciones";
 import {
   getConversacion,
   getConversaciones,
@@ -34,6 +42,12 @@ import {
 } from "./real/conversaciones";
 import { getIntegrantesReales } from "./real/integrantes";
 import { apagarAgenteReal, prenderAgenteReal } from "./real/acciones";
+import {
+  borrarCorreccionReal,
+  cambiarEstadoCorreccionReal,
+  crearCorreccionReal,
+  getCorreccionesReales,
+} from "./real/correcciones";
 import {
   cambiarAgenteGlobalReal,
   getAgenteGlobalReal,
@@ -89,6 +103,22 @@ export const db = {
   cambiarAgenteGlobal: hayCredencialesSupabase
     ? cambiarAgenteGlobalReal
     : (soloDemo as (encendido: boolean) => Promise<AgenteGlobal>),
+  /*
+   * Las correcciones SÍ se pueden escribir en modo demo, al revés que el
+   * agente: son notas del panel, no le tocan la boca a nadie. Se guardan en
+   * memoria del proceso y se pierden al reiniciar, que para una demo alcanza
+   * y sobra — y deja probar el flujo entero sin credenciales.
+   */
+  correcciones: hayCredencialesSupabase ? getCorreccionesReales : getCorrecciones,
+  crearCorreccion: hayCredencialesSupabase
+    ? crearCorreccionReal
+    : crearCorreccion,
+  cambiarEstadoCorreccion: hayCredencialesSupabase
+    ? cambiarEstadoCorreccionReal
+    : cambiarEstadoCorreccion,
+  borrarCorreccion: hayCredencialesSupabase
+    ? borrarCorreccionReal
+    : borrarCorreccion,
 };
 
 export type * from "./types";

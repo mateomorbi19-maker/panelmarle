@@ -18,6 +18,7 @@ import {
   Paperclip,
   SendHorizontal,
   Trash2,
+  Wrench,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -47,9 +48,10 @@ import { cn } from "@/lib/utils";
  *   (⋯)  [ escribí un mensaje… ]  (🎤 / ➤)
  *
  * El botón de los tres puntos vive en SU PROPIO círculo, separado de la barra,
- * para que no se toque sin querer al ir a escribir. Adentro están las dos
- * cosas que antes ocupaban lugar fijo en pantalla: adjuntar un archivo y el
- * interruptor del agente.
+ * para que no se toque sin querer al ir a escribir. Adentro están las cosas
+ * que antes ocupaban lugar fijo en pantalla —adjuntar un archivo y el
+ * interruptor del agente— y anotar una corrección: marcar los mensajes donde
+ * el agente se equivocó para arreglarlo después.
  *
  * A la derecha hay uno solo: micrófono cuando no hay nada escrito, flecha de
  * enviar cuando sí. Nunca los dos, así no hay dónde equivocarse.
@@ -77,6 +79,7 @@ export function CuadroRespuesta({
   enlaceAlternativo,
   onEnviado,
   onCambiarAgente,
+  onCorregir,
   cambiandoAgente = false,
   agenteGlobalEncendido = true,
   autoFoco = false,
@@ -96,6 +99,12 @@ export function CuadroRespuesta({
   ) => void;
   /** Si viene, el menú muestra el interruptor del agente. */
   onCambiarAgente?: (encendido: boolean) => void;
+  /**
+   * Si viene, el menú ofrece anotar una corrección. Solo lo pasa la pantalla
+   * del chat: desde la lista no se ven los mensajes, así que no habría cuáles
+   * marcar.
+   */
+  onCorregir?: () => void;
   cambiandoAgente?: boolean;
   /**
    * El interruptor GENERAL. Apagado manda sobre todo: el de este chat no
@@ -449,6 +458,13 @@ export function CuadroRespuesta({
               <Paperclip aria-hidden="true" />
               Adjuntar archivo
             </DropdownMenuItem>
+
+            {onCorregir ? (
+              <DropdownMenuItem onClick={onCorregir}>
+                <Wrench aria-hidden="true" />
+                Corrección
+              </DropdownMenuItem>
+            ) : null}
 
             {onCambiarAgente ? (
               <>

@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BotOff } from "lucide-react";
+import { BotOff, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
+import { NuevaCorreccion } from "@/components/correcciones/nueva-correccion";
+import { SeleccionMensajes } from "@/components/correcciones/seleccion-mensajes";
 import { CuadroRespuesta } from "@/components/conversaciones/cuadro-respuesta";
 import { Burbuja } from "@/components/conversaciones/transcripcion";
+import { Button } from "@/components/ui/button";
+import { contarElegidos, esCorregible } from "@/lib/correcciones";
 import type { Conversacion, Mensaje } from "@/lib/data/types";
 import { identidad } from "@/lib/identidad";
 import type { EstadoVentana } from "@/lib/ventana";
@@ -30,10 +34,17 @@ import type { EstadoVentana } from "@/lib/ventana";
  * Además se queda pegado abajo: si Marle está mirando lo último, un mensaje
  * nuevo —o una foto que recién termina de cargar y empuja todo— la deja donde
  * estaba. Si subió a leer algo viejo, NO se la mueve.
+ *
+ * LOS TRES MODOS. Normal es contestar. "Eligiendo" y "redactando" son las dos
+ * mitades de anotar una corrección: primero se marcan los mensajes donde el
+ * agente se equivocó, después se cuenta qué pasó. Se entra desde los tres
+ * puntos y se sale con Cancelar; nada de esto le llega a la clienta.
  */
 
 /** Cuánto se puede despegar del fondo y seguir considerándose "abajo". */
 const MARGEN_ABAJO = 80;
+
+type Modo = "normal" | "eligiendo" | "redactando";
 
 interface Pendiente {
   externoId: string;
@@ -60,6 +71,8 @@ export function PantallaChat({
   const router = useRouter();
   const [cambiandoAgente, setCambiandoAgente] = useState(false);
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
+  const [modo, setModo] = useState<Modo>("normal");
+  const [elegidos, setElegidos] = useState<Set<string>>(new Set());
   const scroller = useRef<HTMLDivElement>(null);
   const pegadoAbajo = useRef(true);
 
@@ -163,7 +176,42 @@ export function PantallaChat({
     }
   }
 
-  const apagado = conversacion.agenteApagado;
+  // --- Marcar una corrección -----------------------------------------------
+
+  function empezarCorreccion() {
+    // Con el chat sin ninguna respuesta del agente no hay nada que marcar, y
+    // dejarla entrar a una pantalla donde no se puede tocar nada es peor que
+    // decírselo.
+    if (!mensajes.some((m) => esCorregible(m.rol))) {
+      toast.error("Todavía no hay ninguna respuesta del agente para marcar.");
+      return;
+    }
+    setElegidos(new Set());
+    setModo("eligiendo");
+  }
+
+  function alternarElegido(id: string) {
+    setElegidos((actuales) => {
+      const siguiente = new Set(actuales);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
+  }
+
+  function salirDeCorreccion() {
+    setModo("normal");
+    setElegidos(new Set());
+  }
+
+  // En el orden del chat, no en el que se fueron tocando: la corrección se lee
+  // como se leyó la conversación.
+  const marcados = useMemo(
+    () => mensajes.filter((m) => elegidos.has(m.id)),
+    [mensajes, elegidos]
+  );
+
+  const corrigiendo = modo !== "normal";
 
   return (
     <>
@@ -173,43 +221,107 @@ export function PantallaChat({
         onScroll={alScrollear}
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-3 pt-3 pb-2"
       >
-        {children}
+        {corrigiendo ? (
+          /*
+            Marcando, la transcripción se vuelve a dibujar acá en el navegador
+            en vez de usar la del servidor (`children`): los circulitos tienen
+            que responder al toque, y eso un Server Component no lo puede
+            hacer. Son los MISMOS mensajes y las mismas burbujas.
+          */
+          <SeleccionMensajes
+            mensajes={mensajes}
+            elegidos={elegidos}
+            onAlternar={alternarElegido}
+          />
+        ) : (
+          <>
+            {children}
 
-        {sinConfirmar.map((p) => (
-          <Burbuja key={p.externoId} mensaje={p.mensaje} pendiente />
-        ))}
+            {sinConfirmar.map((p) => (
+              <Burbuja key={p.externoId} mensaje={p.mensaje} pendiente />
+            ))}
+          </>
+        )}
       </div>
 
-      {/* --- El cuadro de escribir: FUERA del scroll -------------------- */}
-      <div className="bg-background flex shrink-0 flex-col gap-1.5 border-t px-3 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
-        {/*
-          El estado del agente se maneja desde el menú de los tres puntos. Acá
-          solo queda un aviso, y SOLO cuando está apagado: prendido es lo
-          normal y no hace falta decirlo, pero apagado no vence solo y es lo
-          que no se puede olvidar.
-        */}
-        {!agenteGlobalEncendido || apagado ? (
-          <p className="text-muted-foreground flex items-center gap-1.5 px-1 text-[11px] leading-tight">
-            <BotOff aria-hidden="true" className="size-3.5 shrink-0" />
-            {!agenteGlobalEncendido
-              ? "Agente apagado en todo el panel. Se prende desde la pantalla de chats."
-              : "Agente apagado. Lo que se diga acá queda guardado igual."}
+      {/* --- Abajo: escribir, o elegir qué estuvo mal ------------------- */}
+      {modo === "normal" ? (
+        <div className="bg-background flex shrink-0 flex-col gap-1.5 border-t px-3 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+          {/*
+            El estado del agente se maneja desde el menú de los tres puntos. Acá
+            solo queda un aviso, y SOLO cuando está apagado: prendido es lo
+            normal y no hace falta decirlo, pero apagado no vence solo y es lo
+            que no se puede olvidar.
+          */}
+          {!agenteGlobalEncendido || conversacion.agenteApagado ? (
+            <p className="text-muted-foreground flex items-center gap-1.5 px-1 text-[11px] leading-tight">
+              <BotOff aria-hidden="true" className="size-3.5 shrink-0" />
+              {!agenteGlobalEncendido
+                ? "Agente apagado en todo el panel. Se prende desde la pantalla de chats."
+                : "Agente apagado. Lo que se diga acá queda guardado igual."}
+            </p>
+          ) : null}
+
+          <CuadroRespuesta
+            conversacionId={conversacion.id}
+            canal={conversacion.canal}
+            nombre={identidad(conversacion)}
+            ventana={ventana}
+            agenteApagado={conversacion.agenteApagado}
+            enlaceAlternativo={enlaceAlternativo}
+            onEnviado={alEnviar}
+            onCambiarAgente={(encendido) => void cambiarAgente(encendido)}
+            onCorregir={empezarCorreccion}
+            cambiandoAgente={cambiandoAgente}
+            agenteGlobalEncendido={agenteGlobalEncendido}
+          />
+        </div>
+      ) : (
+        <div className="bg-background flex shrink-0 items-center gap-2 border-t px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={salirDeCorreccion}
+            aria-label="Cancelar la corrección"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2"
+          >
+            <X aria-hidden="true" className="size-5" />
+          </button>
+
+          <p className="min-w-0 flex-1 text-[13px] leading-tight">
+            {elegidos.size === 0 ? (
+              <span className="text-muted-foreground">
+                Tocá los mensajes donde el agente se equivocó.
+              </span>
+            ) : (
+              <span className="font-medium">
+                {contarElegidos(elegidos.size)}
+              </span>
+            )}
           </p>
-        ) : null}
 
-        <CuadroRespuesta
+          <Button
+            className="h-11 shrink-0 gap-2 rounded-full px-5"
+            disabled={elegidos.size === 0}
+            onClick={() => setModo("redactando")}
+          >
+            <Wrench aria-hidden="true" className="size-4" />
+            Siguiente
+          </Button>
+        </div>
+      )}
+
+      {modo === "redactando" ? (
+        <NuevaCorreccion
           conversacionId={conversacion.id}
+          contacto={identidad(conversacion)}
           canal={conversacion.canal}
-          nombre={identidad(conversacion)}
-          ventana={ventana}
-          agenteApagado={apagado}
-          enlaceAlternativo={enlaceAlternativo}
-          onEnviado={alEnviar}
-          onCambiarAgente={(encendido) => void cambiarAgente(encendido)}
-          cambiandoAgente={cambiandoAgente}
-          agenteGlobalEncendido={agenteGlobalEncendido}
+          mensajes={marcados}
+          // Volver es volver a ELEGIR, no salir: si Marle se dio cuenta de que
+          // le faltó un mensaje, tiene que poder sumarlo sin escribir de nuevo.
+          onVolver={() => setModo("eligiendo")}
+          onGuardada={salirDeCorreccion}
         />
-      </div>
+      ) : null}
     </>
   );
 }

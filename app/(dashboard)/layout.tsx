@@ -11,9 +11,9 @@ import { db } from "@/lib/data";
  * de borde a borde. Cada sección pone su propio margen (`<Seccion>`); la lista
  * de chats a propósito no lo pone.
  *
- * Ya no hay menú lateral. El panel ES la lista de chats: un cajón con las dos
- * herramientas que se usan cada tanto (Resumen y Alertas) ocupa menos y se
- * entiende mejor que una barra con seis secciones.
+ * Ya no hay menú lateral. El panel ES la lista de chats: un cajón con las
+ * herramientas que se usan cada tanto (Resumen, Alertas y Correcciones) ocupa
+ * menos y se entiende mejor que una barra con seis secciones.
  */
 export default async function DashboardLayout({
   children,
@@ -23,13 +23,29 @@ export default async function DashboardLayout({
   // Guard de sesión: sin cookie válida no se ve ninguna sección del panel.
   if (!(await estaAutenticado())) redirect("/login");
 
-  const [alertas, agente] = await Promise.all([db.alertas(), db.agenteGlobal()]);
+  const [alertas, agente, correcciones] = await Promise.all([
+    db.alertas(),
+    db.agenteGlobal(),
+    /*
+     * Este número es SOLO el globito del menú, y por eso es lo único del panel
+     * que se traga su propio error. El armazón envuelve todas las pantallas: si
+     * la lectura de correcciones fallara (la tabla recién creada, un permiso
+     * mal puesto), se llevaría puesta también la lista de chats, que es lo que
+     * Marle viene a ver. Sin globito se sigue trabajando; sin chats, no.
+     * La sección /correcciones sí falla fuerte: ahí el dato es el contenido.
+     */
+    db.correcciones().catch(() => []),
+  ]);
   const alertasPendientes = alertas.filter((a) => !a.atendida).length;
+  const correccionesPendientes = correcciones.filter(
+    (c) => c.estado === "pendiente"
+  ).length;
 
   return (
     <div className="bg-background flex min-h-svh w-full flex-col">
       <BarraSuperior
         alertasPendientes={alertasPendientes}
+        correccionesPendientes={correccionesPendientes}
         agenteEncendido={agente.encendido}
       />
       <main className="flex flex-1 flex-col">{children}</main>

@@ -216,3 +216,53 @@ export interface Mensaje {
   /** El motivo crudo que devolvió Meta cuando falló. */
   errorExterno?: string;
 }
+
+export type EstadoCorreccion = "pendiente" | "resuelta";
+
+/**
+ * Un mensaje marcado dentro de una corrección.
+ *
+ * El texto va COPIADO y no por referencia a propósito: la corrección tiene que
+ * seguir diciendo qué dijo mal el agente aunque después ese mensaje se borre.
+ * Si al abrirla dijera "mensaje no encontrado" no serviría para arreglar nada.
+ */
+export interface MensajeCorregido {
+  /** Id del mensaje en la tabla `mensajes`, para poder volver al chat. */
+  mensajeId: string;
+  rol: RolMensaje;
+  texto?: string;
+  /** ISO 8601. */
+  fecha: string;
+}
+
+/**
+ * Algo que el agente hizo mal y hay que arreglarle. ← tabla `correcciones`.
+ *
+ * Marle las anota desde adentro de un chat: marca los mensajes donde estuvo el
+ * error y escribe (o dicta) qué pasó. Después se leen todas juntas en la
+ * sección Correcciones, que es la lista de lo que hay que tocar en el prompt.
+ */
+export interface Correccion {
+  id: string;
+  /** Puede faltar: la corrección sobrevive a que se borre la conversación. */
+  conversacionId?: string;
+  /** Con quién era el chat, copiado al anotarla. */
+  contacto?: string;
+  canal?: Canal;
+  descripcion: string;
+  mensajes: MensajeCorregido[];
+  estado: EstadoCorreccion;
+  /** ISO 8601. */
+  creadaAt: string;
+  /** ISO 8601. */
+  resueltaAt?: string;
+}
+
+/** Lo que hace falta para anotar una corrección nueva. */
+export interface CorreccionNueva {
+  conversacionId?: string;
+  contacto?: string;
+  canal?: Canal;
+  descripcion: string;
+  mensajes: MensajeCorregido[];
+}
