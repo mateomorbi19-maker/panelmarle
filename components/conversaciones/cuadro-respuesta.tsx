@@ -56,6 +56,11 @@ import { cn } from "@/lib/utils";
  * A la derecha hay uno solo: micrófono cuando no hay nada escrito, flecha de
  * enviar cuando sí. Nunca los dos, así no hay dónde equivocarse.
  *
+ * Con la ventana de 24 h cerrada se bloquea SOLO lo que Meta no deja hacer:
+ * mandarle un mensaje. En el lugar de la barra queda el cartel que explica por
+ * qué, pero los tres puntos siguen ahí, con la corrección y el interruptor del
+ * agente: que un chat esté viejo no quiere decir que no haya nada para marcar.
+ *
  * Vive aparte de la pantalla del chat porque también lo usa la lista de
  * conversaciones, y las reglas de qué se puede mandar tienen que ser LAS
  * MISMAS en los dos lados.
@@ -253,6 +258,18 @@ export function CuadroRespuesta({
   }
 
   async function enviarGrabacion() {
+    // Primero la ventana, DESPUÉS cortar. Al revés —que es como estaba— si la
+    // ventana se cerró mientras grababa, el audio se cortaba, se guardaba y
+    // recién ahí `enviar()` volvía en silencio por su propio guard: la
+    // grabación se perdía sin que nadie le dijera nada.
+    if (!ventana.abierta) {
+      await cortarGrabacion(false);
+      toast.error(
+        "Se cerró la ventana de 24 horas mientras grababas: ese audio ya no se puede mandar."
+      );
+      return;
+    }
+
     const audio = await cortarGrabacion(true);
     if (!audio) {
       toast.error("La grabación quedó vacía.");
@@ -329,46 +346,110 @@ export function CuadroRespuesta({
     }
   }
 
-  // --- Ventana cerrada: no se manda y se ofrece el camino que sí funciona ---
-  if (!ventana.abierta) {
+  /**
+   * Los tres puntos.
+   *
+   * Vive en una función y no suelto en el `return` porque el cuadro tiene DOS
+   * formas —escribiendo, y con la ventana de 24 h cerrada— y el menú es el
+   * mismo en las dos: es, justamente, lo que tiene que seguir estando cuando
+   * Meta no deja mandar nada.
+   *
+   * @param conAdjuntar adjuntar un archivo es una forma de MANDAR, así que con
+   * la ventana cerrada ese ítem no va. Y si no queda ninguno —la lista de
+   * chats no pasa ni corrección ni interruptor— no se dibuja ni el botón: un
+   * menú que se abre vacío es peor que no tenerlo.
+   */
+  function menuDeOpciones(conAdjuntar: boolean) {
+    if (!conAdjuntar && !onCorregir && !onCambiarAgente) return null;
+
     return (
-      <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
-        <p className="flex items-center gap-2 text-sm font-medium">
-          <Lock aria-hidden="true" className="size-4 shrink-0" />
-          No se le puede escribir por acá
-        </p>
-        <p className="text-muted-foreground text-sm">
-          {ventana.nuncaEscribio
-            ? `${nombre} todavía no escribió nada.`
-            : `Pasaron más de 24 horas desde su último mensaje (${ventana.detalle}).`}
-          <span className="hidden sm:inline">
-            {" "}
-            Meta solo deja responder dentro de las 24 horas siguientes al
-            mensaje de la clienta. Va a poder de nuevo apenas ella escriba.
-          </span>
-        </p>
-        {enlaceAlternativo ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            render={
-              <a
-                href={enlaceAlternativo.href}
-                target="_blank"
-                rel="noreferrer noopener"
-              />
-            }
-          >
-            {enlaceAlternativo.etiqueta}
-            <ExternalLink data-icon="inline-end" aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              aria-label="Más opciones"
+              className="bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground focus-visible:outline-ring flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            />
+          }
+        >
+          <MoreHorizontal aria-hidden="true" className="size-5" />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="start" side="top" className="w-60">
+          {conAdjuntar ? (
+            <DropdownMenuItem onClick={() => selector.current?.click()}>
+              <Paperclip aria-hidden="true" />
+              Adjuntar archivo
+            </DropdownMenuItem>
+          ) : null}
+
+          {onCorregir ? (
+            <DropdownMenuItem onClick={onCorregir}>
+              <Wrench aria-hidden="true" />
+              Corrección
+            </DropdownMenuItem>
+          ) : null}
+
+          {onCambiarAgente ? (
+            <>
+              {/* Sin nada arriba, una línea suelta contra el borde no separa nada. */}
+              {conAdjuntar || onCorregir ? <DropdownMenuSeparator /> : null}
+              {/*
+                Va como fila suelta y NO como ítem del menú a propósito: si
+                fuera un ítem, el clic contaría dos veces (el del interruptor
+                y el del ítem) y el agente se prendería y apagaría de una.
+                Además así el menú no se cierra y se ve cómo quedó.
+              */}
+              <div className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1.5">
+                <label htmlFor={idAgente} className="flex-1 cursor-pointer text-sm">
+                  Agente
+                  <span className="text-muted-foreground block text-xs">
+                    {!agenteGlobalEncendido
+                      ? "Apagado en todo el panel"
+                      : agenteVisible
+                        ? "Contesta este chat"
+                        : "Apagado en este chat"}
+                  </span>
+                </label>
+                {/*
+                  Igual que el general: NUNCA se desmonta mientras guarda.
+                  Un interruptor que desaparece y vuelve deja la duda de si
+                  uno lo prendió o lo apagó.
+                */}
+                <Switch
+                  id={idAgente}
+                  checked={agenteVisible}
+                  disabled={!agenteGlobalEncendido}
+                  data-pendiente={
+                    cambiandoAgente || agenteVisible !== agenteReal
+                  }
+                  onCheckedChange={(nuevo) => {
+                    startTransition(() => {
+                      setAgenteVisible(nuevo);
+                      onCambiarAgente(nuevo);
+                    });
+                  }}
+                >
+                  <SwitchThumb />
+                </Switch>
+              </div>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
   // --- Grabando: la barra se convierte en el control de la grabación -------
+  //
+  // Va ANTES de la ventana cerrada, y no es un capricho de orden: la
+  // pantalla se refresca sola cada 20 s, así que la ventana se puede cerrar
+  // JUSTO mientras Marle graba. Con el orden al revés, la barra de grabación
+  // desaparecía de la pantalla pero el micrófono seguía abierto y el
+  // cronómetro corriendo: el teléfono quedaba con la lucecita prendida y
+  // nada para apagarla. Así la grabación se queda con su barra y se puede
+  // descartar con el tacho.
   if (grabando) {
     return (
       <div className="flex items-center gap-2">
@@ -386,15 +467,20 @@ export function CuadroRespuesta({
           <span className="bg-destructive size-2.5 shrink-0 animate-pulse rounded-full" />
           <span className="text-sm tabular-nums">{reloj(segundos)}</span>
           <span className="text-muted-foreground truncate text-xs">
-            Grabando…
+            {ventana.abierta ? "Grabando…" : "Ya no se puede mandar"}
           </span>
         </div>
 
+        {/*
+          Si la ventana se cerró en el medio, la flecha se apaga: mandar ese
+          audio ya no es posible y tocarla solo lo borraría. Queda el tacho,
+          que es lo único honesto que se puede hacer con él.
+        */}
         <Button
           size="icon"
           className="size-11 shrink-0 rounded-full"
           onClick={() => void enviarGrabacion()}
-          disabled={enviando}
+          disabled={enviando || !ventana.abierta}
           aria-label="Enviar el audio"
         >
           {enviando ? (
@@ -403,6 +489,59 @@ export function CuadroRespuesta({
             <SendHorizontal aria-hidden="true" className="size-5" />
           )}
         </Button>
+      </div>
+    );
+  }
+
+  // --- Ventana cerrada: se bloquea ESCRIBIR, y nada más --------------------
+  //
+  // Antes acá se devolvía solamente el cartel, y con eso se iba TODO lo demás:
+  // los tres puntos desaparecían, y con ellos anotar una corrección y el
+  // interruptor del agente. Era justo al revés de lo que hace falta — que el
+  // agente haya metido la pata en un chat de hace tres días es EL caso en el
+  // que hay que poder marcarlo, y ahí no había por dónde.
+  //
+  // Lo único que Meta no deja es mandarle un mensaje a la clienta. Eso, y solo
+  // eso, es lo que se bloquea: el campo, el micrófono, enviar y adjuntar (que
+  // es otra forma de mandar). El menú sigue entero.
+  if (!ventana.abierta) {
+    return (
+      <div className="flex items-end gap-2">
+        {menuDeOpciones(false)}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-2xl border border-dashed px-3 py-2.5">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Lock aria-hidden="true" className="size-4 shrink-0" />
+            No se le puede escribir por acá
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {ventana.nuncaEscribio
+              ? `${nombre} todavía no escribió nada.`
+              : `Pasaron más de 24 horas desde su último mensaje (${ventana.detalle}).`}
+            <span className="hidden sm:inline">
+              {" "}
+              Meta solo deja responder dentro de las 24 horas siguientes al
+              mensaje de la clienta. Va a poder de nuevo apenas ella escriba.
+            </span>
+          </p>
+          {enlaceAlternativo ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              render={
+                <a
+                  href={enlaceAlternativo.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                />
+              }
+            >
+              {enlaceAlternativo.etiqueta}
+              <ExternalLink data-icon="inline-end" aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -440,78 +579,7 @@ export function CuadroRespuesta({
 
       <div className="flex items-end gap-2">
         {/* --- Los tres puntos, en su propio círculo ------------------- */}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button
-                type="button"
-                aria-label="Más opciones"
-                className="bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground focus-visible:outline-ring flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-              />
-            }
-          >
-            <MoreHorizontal aria-hidden="true" className="size-5" />
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="start" side="top" className="w-60">
-            <DropdownMenuItem onClick={() => selector.current?.click()}>
-              <Paperclip aria-hidden="true" />
-              Adjuntar archivo
-            </DropdownMenuItem>
-
-            {onCorregir ? (
-              <DropdownMenuItem onClick={onCorregir}>
-                <Wrench aria-hidden="true" />
-                Corrección
-              </DropdownMenuItem>
-            ) : null}
-
-            {onCambiarAgente ? (
-              <>
-                <DropdownMenuSeparator />
-                {/*
-                  Va como fila suelta y NO como ítem del menú a propósito: si
-                  fuera un ítem, el clic contaría dos veces (el del interruptor
-                  y el del ítem) y el agente se prendería y apagaría de una.
-                  Además así el menú no se cierra y se ve cómo quedó.
-                */}
-                <div className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1.5">
-                  <label htmlFor={idAgente} className="flex-1 cursor-pointer text-sm">
-                    Agente
-                    <span className="text-muted-foreground block text-xs">
-                      {!agenteGlobalEncendido
-                        ? "Apagado en todo el panel"
-                        : agenteVisible
-                          ? "Contesta este chat"
-                          : "Apagado en este chat"}
-                    </span>
-                  </label>
-                  {/*
-                    Igual que el general: NUNCA se desmonta mientras guarda.
-                    Un interruptor que desaparece y vuelve deja la duda de si
-                    uno lo prendió o lo apagó.
-                  */}
-                  <Switch
-                    id={idAgente}
-                    checked={agenteVisible}
-                    disabled={!agenteGlobalEncendido}
-                    data-pendiente={
-                      cambiandoAgente || agenteVisible !== agenteReal
-                    }
-                    onCheckedChange={(nuevo) => {
-                      startTransition(() => {
-                        setAgenteVisible(nuevo);
-                        onCambiarAgente(nuevo);
-                      });
-                    }}
-                  >
-                    <SwitchThumb />
-                  </Switch>
-                </div>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {menuDeOpciones(true)}
 
         {/* --- La barra de escritura ---------------------------------- */}
         <div className="bg-muted flex min-h-11 min-w-0 flex-1 items-center rounded-3xl px-4 py-2">
