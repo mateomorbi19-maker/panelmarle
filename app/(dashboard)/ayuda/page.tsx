@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
 import { Seccion } from "@/components/seccion";
 import { SectionHeader } from "@/components/section-header";
+import { VideoManyChat } from "@/components/video-manychat";
 
 export const metadata: Metadata = {
   title: "Ayuda",
@@ -26,15 +27,7 @@ export default function AyudaPage() {
           </p>
         </div>
 
-        <iframe
-          src="https://www.youtube-nocookie.com/embed/KXd6jYUV4GI"
-          title="Cómo configurar tus flujos de ManyChat"
-          className="aspect-video w-full border-0 bg-black"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="strict-origin-when-cross-origin"
-          allowFullScreen
-        />
+        <VideoManyChat />
 
         <div className="p-4 md:px-6">
           <a
