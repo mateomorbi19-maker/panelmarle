@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BellRing,
+  CircleHelp,
   GraduationCap,
   Home,
   MessagesSquare,
@@ -35,7 +36,7 @@ import { cn } from "@/lib/utils";
  *
  * "Más" NO es un cajón de sastre creativo: junta exactamente las secciones
  * reales que se usan cada tanto (Correcciones, Integrantes, Contactos,
- * Checkouts). Meter los ocho destinos en la barra los haría a todos enanos.
+ * Checkouts y Ayuda). Meter todos los destinos en la barra los haría enanos.
  *
  * Se esconde adentro de un chat —ahí abajo está el cuadro de escribir, que
  * importa más— y en pantallas sm+ desaparece: en tablet/escritorio navega el
@@ -49,6 +50,7 @@ const PRINCIPALES: { href: string; etiqueta: string; Icono: LucideIcon }[] = [
 ];
 
 const SECUNDARIAS: { href: string; etiqueta: string; Icono: LucideIcon; detalle: string }[] = [
+  { href: "/ayuda", etiqueta: "Ayuda", Icono: CircleHelp, detalle: "Cómo configurar tus flujos de ManyChat" },
   { href: "/correcciones", etiqueta: "Correcciones", Icono: Wrench, detalle: "Lo que hay que arreglarle al agente" },
   { href: "/integrantes", etiqueta: "Integrantes", Icono: GraduationCap, detalle: "Las que pagaron la Academia" },
   { href: "/contactos", etiqueta: "Contactos", Icono: Users, detalle: "Todas las que pasaron por el chat" },

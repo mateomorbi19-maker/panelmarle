@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   BellRing,
+  CircleHelp,
   GraduationCap,
   Home,
   Monitor,
@@ -165,6 +166,11 @@ export function BarraSuperior({
           <DropdownMenuItem render={<Link href="/checkouts" />}>
             <ShoppingCart aria-hidden="true" />
             Checkouts
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/ayuda" />}>
+            <CircleHelp aria-hidden="true" />
+            Ayuda
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
